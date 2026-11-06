@@ -1,0 +1,25 @@
+# Секреты и локальные настройки
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Инструменты
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Данные локальной БД и IDE
+pgdata/
+.idea/
+.vscode/
+.DS_Store
