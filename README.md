@@ -25,22 +25,6 @@ uv run pytest                        # проверки на реальной Б
 uv run pytest -m "not integration"   # только быстрые проверки без БД
 ```
 
-## Структура
-
-```
-src/app/
-  core/config/       настройки: base.py (корень), app.py, database.py, enums.py
-  database/base.py   Base, миксины, нативные enum
-  database/rules.py  NamingConvention: соглашение об именах ограничений
-  database/session.py класс Database: async-движок и сессия на запрос
-  database/models/   модели SQLAlchemy (у каждой колонки есть comment)
-    user/            base.py (User), role.py (UserRole)
-  main.py            приложение FastAPI
-migrations/          миграции Alembic
-uv.lock              зафиксированные версии зависимостей (коммитится)
-docs/db-schema.md    ER-диаграмма
-```
-
 ## Работа с миграциями
 
 ```bash
