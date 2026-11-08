@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import pytest
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,6 +29,17 @@ class TestDictionaryTitles:
 
         async with rejected("title_lower"):
             session.add(dictionary(title="собаки"))
+
+    async def test_deleted_title_can_be_created_again(
+        self, session: AsyncSession, dictionary: type[Bonus] | type[Tag]
+    ) -> None:
+        """Название удалённого значения освобождается: такое же можно создать заново."""
+        old = dictionary(title="Собаки", deleted_at=datetime.now(UTC))
+        session.add(old)
+        await session.flush()
+
+        session.add(dictionary(title="собаки"))
+        await session.flush()
 
     @pytest.mark.parametrize("title", ["", "   ", " Кошки", "Кошки "])
     async def test_untrimmed_title_is_rejected(

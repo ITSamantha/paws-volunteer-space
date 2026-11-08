@@ -2,14 +2,19 @@ from sqlalchemy import CheckConstraint, ForeignKey, Index, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
-from app.database.mixins import CreatedAtMixin
+from app.database.mixins import CreatedAtMixin, SoftDeleteMixin
 
 
-class Bonus(CreatedAtMixin, Base):
+class Bonus(CreatedAtMixin, SoftDeleteMixin, Base):
     __tablename__ = "bonuses"
     __table_args__ = (
         CheckConstraint("title = btrim(title) AND title <> ''", name="title_trimmed"),
-        Index("uq_bonuses_title_lower", text("lower(title)"), unique=True),
+        Index(
+            "uq_bonuses_title_lower",
+            text("lower(title)"),
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
         {"comment": "Справочник бонусов за участие в мероприятиях"},
     )
 

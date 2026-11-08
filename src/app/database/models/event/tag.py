@@ -2,14 +2,19 @@ from sqlalchemy import CheckConstraint, ForeignKey, Index, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
-from app.database.mixins import CreatedAtMixin
+from app.database.mixins import CreatedAtMixin, SoftDeleteMixin
 
 
-class Tag(CreatedAtMixin, Base):
+class Tag(CreatedAtMixin, SoftDeleteMixin, Base):
     __tablename__ = "tags"
     __table_args__ = (
         CheckConstraint("title = btrim(title) AND title <> ''", name="title_trimmed"),
-        Index("uq_tags_title_lower", text("lower(title)"), unique=True),
+        Index(
+            "uq_tags_title_lower",
+            text("lower(title)"),
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
         {"comment": "Справочник тегов мероприятий"},
     )
 

@@ -356,6 +356,12 @@ def upgrade() -> None:
             nullable=False,
             comment="Дата и время создания записи",
         ),
+        sa.Column(
+            "deleted_at",
+            sa.DateTime(timezone=True),
+            nullable=True,
+            comment="Дата и время удаления записи; NULL — запись активна",
+        ),
         sa.ForeignKeyConstraint(
             ["created_by"],
             ["users.id"],
@@ -369,7 +375,11 @@ def upgrade() -> None:
         comment="Справочник бонусов за участие в мероприятиях",
     )
     op.create_index(
-        "uq_bonuses_title_lower", "bonuses", [sa.literal_column("lower(title)")], unique=True
+        "uq_bonuses_title_lower",
+        "bonuses",
+        [sa.literal_column("lower(title)")],
+        unique=True,
+        postgresql_where=sa.text("deleted_at IS NULL"),
     )
     op.create_table(
         "event_bonuses",
@@ -408,6 +418,12 @@ def upgrade() -> None:
             nullable=False,
             comment="Дата и время создания записи",
         ),
+        sa.Column(
+            "deleted_at",
+            sa.DateTime(timezone=True),
+            nullable=True,
+            comment="Дата и время удаления записи; NULL — запись активна",
+        ),
         sa.ForeignKeyConstraint(
             ["created_by"],
             ["users.id"],
@@ -420,7 +436,13 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_tags")),
         comment="Справочник тегов мероприятий",
     )
-    op.create_index("uq_tags_title_lower", "tags", [sa.literal_column("lower(title)")], unique=True)
+    op.create_index(
+        "uq_tags_title_lower",
+        "tags",
+        [sa.literal_column("lower(title)")],
+        unique=True,
+        postgresql_where=sa.text("deleted_at IS NULL"),
+    )
     op.create_table(
         "event_tags",
         sa.Column("event_id", sa.Integer(), nullable=False, comment="Мероприятие"),
@@ -788,11 +810,17 @@ def downgrade() -> None:
     op.drop_table("user_roles")
     op.drop_index(op.f("ix_event_tags_tag_id"), table_name="event_tags")
     op.drop_table("event_tags")
-    op.drop_index("uq_tags_title_lower", table_name="tags")
+    op.drop_index(
+        "uq_tags_title_lower", table_name="tags", postgresql_where=sa.text("deleted_at IS NULL")
+    )
     op.drop_table("tags")
     op.drop_index(op.f("ix_event_bonuses_bonus_id"), table_name="event_bonuses")
     op.drop_table("event_bonuses")
-    op.drop_index("uq_bonuses_title_lower", table_name="bonuses")
+    op.drop_index(
+        "uq_bonuses_title_lower",
+        table_name="bonuses",
+        postgresql_where=sa.text("deleted_at IS NULL"),
+    )
     op.drop_table("bonuses")
     op.drop_index("ix_events_status_starts_at", table_name="events")
     op.drop_table("events")

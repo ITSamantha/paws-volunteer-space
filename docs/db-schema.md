@@ -91,6 +91,7 @@ erDiagram
         varchar(255) title
         int created_by FK "необяз."
         timestamptz created_at
+        timestamptz deleted_at "необяз."
     }
 
     event_bonuses {
@@ -103,6 +104,7 @@ erDiagram
         varchar(255) title
         int created_by FK "необяз."
         timestamptz created_at
+        timestamptz deleted_at "необяз."
     }
 
     event_tags {
@@ -163,7 +165,7 @@ erDiagram
 - `events`: `location IS NOT NULL OR shelter_id IS NOT NULL` (`ck_events_has_place`)
 - индекс `ix_events_status_starts_at` по (status, starts_at)
 - `bonuses`, `tags`: `title = btrim(title) AND title <> ''` (`ck_bonuses_title_trimmed`, `ck_tags_title_trimmed`)
-- уникальные индексы `uq_bonuses_title_lower`, `uq_tags_title_lower` по `lower(title)` (без учёта регистра)
+- уникальные индексы `uq_bonuses_title_lower`, `uq_tags_title_lower` по `lower(title)` среди неудалённых записей (без учёта регистра)
 - индекс `ix_event_bonuses_bonus_id` по (bonus_id)
 - индекс `ix_event_tags_tag_id` по (tag_id)
 - `registrations`: `status <> 'cancelled' OR (cancellation_reason IS NOT NULL AND btrim(cancellation_reason) <> '')` (`ck_registrations_cancelled_requires_reason`)
