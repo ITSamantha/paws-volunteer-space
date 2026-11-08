@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import Depends, Query, Response, status
 
 from app.api.dependencies import (
     CurrentTelegramId,
@@ -9,6 +9,8 @@ from app.api.dependencies import (
     Dependencies,
     PageParams,
 )
+from app.api.routing import BaseRouter, Route
+from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError, UnauthorizedError
 from app.database.models import User
 from app.database.models.enums import RoleType, UserStatus
 from app.schemas.pagination import Page
@@ -24,8 +26,13 @@ from app.services.access import Access
 from app.services.users import UserService
 
 
-class UsersRouter:
+class UsersRouter(BaseRouter):
     """Пользователи: регистрация, профиль, блокировка, роли."""
+
+    prefix = "/api/users"
+    tags = ("users",)
+    dependencies = (Depends(Dependencies.service),)
+    errors = (UnauthorizedError,)
 
     @staticmethod
     def present(user: User, viewer: User | None) -> UserRead:
@@ -38,6 +45,13 @@ class UsersRouter:
         return data
 
     @classmethod
+    @Route.post(
+        "",
+        status_code=status.HTTP_201_CREATED,
+        summary="Регистрация волонтёра",
+        response=UserRead,
+        errors=(ConflictError,),
+    )
     async def register(cls, data: UserCreate, session: DatabaseSession) -> UserRead:
         """Регистрирует волонтёра; нужно согласие на обработку персональных данных."""
         user = await UserService(session).register(data)
@@ -45,6 +59,15 @@ class UsersRouter:
         return cls.present(user, viewer=None)
 
     @classmethod
+    @Route.get(
+        "/by-telegram/{telegram_id}",
+        summary="Пользователь по Telegram ID",
+        response=UserRead,
+        errors=(
+            ForbiddenError,
+            NotFoundError,
+        ),
+    )
     async def get_by_telegram_id(
         cls, telegram_id: int, current_telegram_id: CurrentTelegramId, session: DatabaseSession
     ) -> UserRead:
@@ -54,6 +77,15 @@ class UsersRouter:
         return cls.present(user, viewer=user if user.telegram_id == current_telegram_id else None)
 
     @classmethod
+    @Route.get(
+        "/{user_id}",
+        summary="Пользователь по ID",
+        response=UserRead,
+        errors=(
+            ForbiddenError,
+            NotFoundError,
+        ),
+    )
     async def get(
         cls, user_id: int, current_user: CurrentUser, session: DatabaseSession
     ) -> UserRead:
@@ -63,6 +95,16 @@ class UsersRouter:
         return cls.present(user, viewer=current_user)
 
     @classmethod
+    @Route.patch(
+        "/{user_id}",
+        summary="Обновление профиля",
+        response=UserRead,
+        errors=(
+            ForbiddenError,
+            NotFoundError,
+            ConflictError,
+        ),
+    )
     async def update(
         cls, user_id: int, data: UserUpdate, current_user: CurrentUser, session: DatabaseSession
     ) -> UserRead:
@@ -72,15 +114,24 @@ class UsersRouter:
         return cls.present(user, viewer=current_user)
 
     @classmethod
+    @Route.get(summary="Поиск пользователей", response=Page[UserRead], errors=(ForbiddenError,))
     async def search(
         cls,
         current_user: CurrentUser,
         session: DatabaseSession,
         pagination: PageParams,
-        status_: Annotated[UserStatus | None, Query(alias="status")] = None,
-        role: RoleType | None = None,
-        full_name: Annotated[str | None, Query(max_length=255)] = None,
-        phone: Annotated[str | None, Query(max_length=16)] = None,
+        status_: Annotated[
+            UserStatus | None, Query(alias="status", description="Статус пользователя")
+        ] = None,
+        role: Annotated[
+            RoleType | None, Query(description="Есть ли у пользователя эта роль")
+        ] = None,
+        full_name: Annotated[
+            str | None, Query(max_length=255, description="Часть ФИО, без учёта регистра")
+        ] = None,
+        phone: Annotated[
+            str | None, Query(max_length=16, description="Часть номера телефона")
+        ] = None,
     ) -> Page[UserRead]:
         """Ищет пользователей по статусу, роли, ФИО и телефону; только организаторам и админам."""
         filters = UserFilters(status=status_, role=role, full_name=full_name, phone=phone)
@@ -94,6 +145,15 @@ class UsersRouter:
         )
 
     @classmethod
+    @Route.post(
+        "/{user_id}/block",
+        summary="Блокировка пользователя",
+        response=UserRead,
+        errors=(
+            ForbiddenError,
+            NotFoundError,
+        ),
+    )
     async def block(
         cls, user_id: int, data: BlockRequest, current_user: CurrentUser, session: DatabaseSession
     ) -> UserRead:
@@ -103,6 +163,15 @@ class UsersRouter:
         return cls.present(user, viewer=current_user)
 
     @classmethod
+    @Route.post(
+        "/{user_id}/unblock",
+        summary="Разблокировка пользователя",
+        response=UserRead,
+        errors=(
+            ForbiddenError,
+            NotFoundError,
+        ),
+    )
     async def unblock(
         cls, user_id: int, data: UnblockRequest, current_user: CurrentUser, session: DatabaseSession
     ) -> UserRead:
@@ -112,6 +181,15 @@ class UsersRouter:
         return cls.present(user, viewer=current_user)
 
     @staticmethod
+    @Route.delete(
+        "/{user_id}",
+        status_code=status.HTTP_204_NO_CONTENT,
+        summary="Удаление пользователя",
+        errors=(
+            ForbiddenError,
+            NotFoundError,
+        ),
+    )
     async def delete(user_id: int, current_user: CurrentUser, session: DatabaseSession) -> Response:
         """Мягко удаляет пользователя: свой аккаунт — пользователь, любой — админ."""
         await UserService(session).delete(user_id, current_user)
@@ -119,61 +197,62 @@ class UsersRouter:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     @staticmethod
+    @Route.get(
+        "/{user_id}/roles",
+        summary="Роли пользователя",
+        response=list[RoleType],
+        errors=(
+            ForbiddenError,
+            NotFoundError,
+        ),
+    )
     async def roles(
         user_id: int, current_user: CurrentUser, session: DatabaseSession
     ) -> list[RoleType]:
         """Возвращает дополнительные роли пользователя."""
         user = await UserService(session).get(user_id, current_user)
 
-        roles = sorted(Access.roles(user))
+        roles = Access.sorted_roles(user)
 
         return roles
 
     @staticmethod
+    @Route.put(
+        "/{user_id}/roles/{role}",
+        summary="Выдача роли",
+        response=list[RoleType],
+        errors=(
+            ForbiddenError,
+            NotFoundError,
+        ),
+    )
     async def grant_role(
         user_id: int, role: RoleType, current_user: CurrentUser, session: DatabaseSession
     ) -> list[RoleType]:
         """Выдаёт роль пользователю; только админ."""
         user = await UserService(session).grant_role(user_id, role, current_user)
 
-        roles = sorted(Access.roles(user))
+        roles = Access.sorted_roles(user)
 
         return roles
 
     @staticmethod
+    @Route.delete(
+        "/{user_id}/roles/{role}",
+        summary="Снятие роли",
+        response=list[RoleType],
+        errors=(
+            ForbiddenError,
+            NotFoundError,
+            ConflictError,
+        ),
+    )
     async def revoke_role(
         user_id: int, role: RoleType, current_user: CurrentUser, session: DatabaseSession
     ) -> list[RoleType]:
         """Снимает роль с пользователя; только админ, последнего админа лишить роли нельзя."""
         user = await UserService(session).revoke_role(user_id, role, current_user)
 
-        roles = sorted(Access.roles(user))
+        roles = Access.sorted_roles(user)
 
         return roles
-
-    @classmethod
-    def build(cls) -> APIRouter:
-        """Собирает роутер пользователей; доступ только по токену сервиса."""
-        router = APIRouter(
-            prefix="/api/users",
-            tags=["users"],
-            dependencies=[Depends(Dependencies.service)],
-        )
-
-        router.add_api_route(
-            "", cls.register, methods=["POST"], status_code=status.HTTP_201_CREATED
-        )
-        router.add_api_route("", cls.search, methods=["GET"])
-        router.add_api_route("/by-telegram/{telegram_id}", cls.get_by_telegram_id, methods=["GET"])
-        router.add_api_route("/{user_id}", cls.get, methods=["GET"])
-        router.add_api_route("/{user_id}", cls.update, methods=["PATCH"])
-        router.add_api_route(
-            "/{user_id}", cls.delete, methods=["DELETE"], status_code=status.HTTP_204_NO_CONTENT
-        )
-        router.add_api_route("/{user_id}/block", cls.block, methods=["POST"])
-        router.add_api_route("/{user_id}/unblock", cls.unblock, methods=["POST"])
-        router.add_api_route("/{user_id}/roles", cls.roles, methods=["GET"])
-        router.add_api_route("/{user_id}/roles/{role}", cls.grant_role, methods=["PUT"])
-        router.add_api_route("/{user_id}/roles/{role}", cls.revoke_role, methods=["DELETE"])
-
-        return router

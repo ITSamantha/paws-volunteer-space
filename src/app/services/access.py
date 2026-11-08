@@ -16,6 +16,13 @@ class Access:
         return {granted.role for granted in user.roles}
 
     @classmethod
+    def sorted_roles(cls, user: User) -> list[RoleType]:
+        """Дополнительные роли пользователя в стабильном порядке."""
+        roles = sorted(cls.roles(user))
+
+        return roles
+
+    @classmethod
     def is_admin(cls, user: User) -> bool:
         """Пользователь — администратор."""
         return bool(cls.roles(user) & cls.ADMIN_ROLES)

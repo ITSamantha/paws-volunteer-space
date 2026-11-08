@@ -27,15 +27,21 @@ class UserCreate(BaseModel):
 
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
-    telegram_id: int = Field(gt=0)
-    telegram_username: TelegramUsername | None = None
-    full_name: FullName
-    phone: Phone
-    isu_id: IsuId | None = None
-    volunteer_id: VolunteerId | None = None
-    vk_link: VkLink | None = None
-    has_notifications_enabled: bool = True
-    is_data_processing_allowed: bool
+    telegram_id: int = Field(gt=0, description="Идентификатор в Telegram")
+    telegram_username: TelegramUsername | None = Field(
+        default=None, description="Имя пользователя в Telegram, с @ или без"
+    )
+    full_name: FullName = Field(description="ФИО")
+    phone: Phone = Field(description="Телефон в формате +79991234567", examples=["+79991234567"])
+    isu_id: IsuId | None = Field(default=None, description="Номер ИСУ")
+    volunteer_id: VolunteerId | None = Field(default=None, description="ID волонтёра на добро.рф")
+    vk_link: VkLink | None = Field(default=None, description="Ссылка на профиль ВКонтакте")
+    has_notifications_enabled: bool = Field(
+        default=True, description="Получать необязательные уведомления и рассылки"
+    )
+    is_data_processing_allowed: bool = Field(
+        description="Согласие на обработку персональных данных; должно быть true"
+    )
 
     @field_validator("is_data_processing_allowed")
     @classmethod
@@ -52,13 +58,21 @@ class UserUpdate(BaseModel):
 
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
-    telegram_username: TelegramUsername | None = None
-    full_name: FullName | None = None
-    phone: Phone | None = None
-    isu_id: IsuId | None = None
-    volunteer_id: VolunteerId | None = None
-    vk_link: VkLink | None = None
-    has_notifications_enabled: bool | None = None
+    telegram_username: TelegramUsername | None = Field(
+        default=None, description="Имя пользователя в Telegram; null очищает"
+    )
+    full_name: FullName | None = Field(default=None, description="ФИО")
+    phone: Phone | None = Field(default=None, description="Телефон в формате +79991234567")
+    isu_id: IsuId | None = Field(default=None, description="Номер ИСУ; null очищает")
+    volunteer_id: VolunteerId | None = Field(
+        default=None, description="ID волонтёра на добро.рф; null очищает"
+    )
+    vk_link: VkLink | None = Field(
+        default=None, description="Ссылка на профиль ВКонтакте; null очищает"
+    )
+    has_notifications_enabled: bool | None = Field(
+        default=None, description="Получать необязательные уведомления и рассылки"
+    )
 
     @model_validator(mode="after")
     def _required_fields_cannot_be_cleared(self) -> Self:
@@ -81,20 +95,26 @@ class UserRead(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
-    telegram_id: int
-    telegram_username: str | None
-    full_name: str | None
-    phone: str
-    isu_id: str | None
-    volunteer_id: str | None
-    vk_link: str | None
-    status: UserStatus
-    comment: str | None
-    has_notifications_enabled: bool
-    is_data_processing_allowed: bool
-    roles: list[RoleType]
-    created_at: datetime
+    id: int = Field(description="Внутренний идентификатор")
+    telegram_id: int = Field(description="Идентификатор в Telegram")
+    telegram_username: str | None = Field(description="Имя пользователя в Telegram")
+    full_name: str | None = Field(description="ФИО")
+    phone: str = Field(description="Телефон")
+    isu_id: str | None = Field(description="Номер ИСУ")
+    volunteer_id: str | None = Field(description="ID волонтёра на добро.рф")
+    vk_link: str | None = Field(description="Ссылка на профиль ВКонтакте")
+    status: UserStatus = Field(description="Статус: active или blocked")
+    comment: str | None = Field(
+        description="Комментарий, например причина блокировки; виден только организаторам и админам"
+    )
+    has_notifications_enabled: bool = Field(
+        description="Включены необязательные уведомления и рассылки"
+    )
+    is_data_processing_allowed: bool = Field(
+        description="Дано согласие на обработку персональных данных"
+    )
+    roles: list[RoleType] = Field(description="Дополнительные роли; пусто — обычный волонтёр")
+    created_at: datetime = Field(description="Дата и время регистрации")
 
     @field_validator("roles", mode="before")
     @classmethod
@@ -111,7 +131,7 @@ class BlockRequest(BaseModel):
 
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
-    comment: Comment
+    comment: Comment = Field(description="Причина блокировки")
 
 
 class UnblockRequest(BaseModel):
@@ -119,7 +139,7 @@ class UnblockRequest(BaseModel):
 
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
-    comment: Comment | None = None
+    comment: Comment | None = Field(default=None, description="Комментарий к разблокировке")
 
 
 @dataclass(frozen=True)
