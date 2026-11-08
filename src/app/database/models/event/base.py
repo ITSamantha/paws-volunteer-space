@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, String
+from sqlalchemy import CheckConstraint, ForeignKey, Index, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, PgEnum
@@ -36,6 +36,10 @@ class Event(TimestampMixin, Base):
         String(500), comment="Место встречи; если не указано, используется адрес приюта"
     )
     capacity: Mapped[int] = mapped_column(comment="Лимит участников; должен быть больше нуля")
+    is_approval_required: Mapped[bool] = mapped_column(
+        server_default=text("false"),
+        comment="Нужно ли организатору одобрять записи; иначе запись подтверждается автоматически",
+    )
     status: Mapped[EventStatus] = mapped_column(
         PgEnum.create(EventStatus, "event_status"),
         server_default=EventStatus.PLANNED.value,

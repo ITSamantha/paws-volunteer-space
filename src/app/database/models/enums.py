@@ -30,10 +30,12 @@ class EventStatus(StrEnum):
 
 class RegistrationStatus(StrEnum):
     REGISTERED = "registered"
+    PENDING = "pending"
+    REJECTED = "rejected"
     CANCELLED = "cancelled"
     WAITLISTED = "waitlisted"
     ATTENDED = "attended"
-    NO_SHOW = "no_show"
+    ABSENT = "absent"
 
 
 class BroadcastAudience(StrEnum):

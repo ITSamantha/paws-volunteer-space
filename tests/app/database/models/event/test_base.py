@@ -1,3 +1,5 @@
+from sqlalchemy import DefaultClause
+
 from app.database.models import Event
 from tests.app.database.models.conftest import CheckNames, TableOf
 
@@ -16,6 +18,13 @@ class TestEvent:
     def test_place_is_required(self, check_names: CheckNames) -> None:
         """У мероприятия должно быть место: свой location или приют."""
         assert "ck_events_has_place" in check_names(Event)
+
+    def test_approval_is_off_by_default(self, table_of: TableOf) -> None:
+        """Запись по умолчанию подтверждается автоматически."""
+        default = table_of(Event).c.is_approval_required.server_default
+
+        assert isinstance(default, DefaultClause)
+        assert str(default.arg) == "false"
 
     def test_contact_is_taken_from_organizer(self, table_of: TableOf) -> None:
         """Отдельных контактов у мероприятия нет: их берут у организатора (created_by)."""

@@ -72,6 +72,7 @@ erDiagram
         int shelter_id FK "необяз."
         varchar(500) location "необяз."
         int capacity
+        bool is_approval_required
         event_status status "planned | cancelled | completed"
         text instructions "необяз."
         text comment "необяз."
@@ -110,7 +111,7 @@ erDiagram
         int id PK
         int event_id FK
         int user_id FK
-        registration_status status "registered | cancelled | waitlisted | attended | no_show"
+        registration_status status "registered | pending | rejected | cancelled | waitlisted | attended | absent"
         timestamptz cancelled_at "необяз."
         timestamptz created_at
     }

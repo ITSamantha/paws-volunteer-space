@@ -232,6 +232,13 @@ def upgrade() -> None:
             comment="Лимит участников; должен быть больше нуля",
         ),
         sa.Column(
+            "is_approval_required",
+            sa.Boolean(),
+            server_default=sa.text("false"),
+            nullable=False,
+            comment="Нужно ли организатору одобрять записи; иначе запись подтверждается автоматически",
+        ),
+        sa.Column(
             "status",
             sa.Enum("planned", "cancelled", "completed", name="event_status"),
             server_default="planned",
@@ -500,10 +507,12 @@ def upgrade() -> None:
             "status",
             sa.Enum(
                 "registered",
+                "pending",
+                "rejected",
                 "cancelled",
                 "waitlisted",
                 "attended",
-                "no_show",
+                "absent",
                 name="registration_status",
             ),
             server_default="registered",
