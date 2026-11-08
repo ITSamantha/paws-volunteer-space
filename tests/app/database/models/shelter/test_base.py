@@ -1,3 +1,5 @@
+from sqlalchemy import DefaultClause
+
 from app.database.models import Shelter
 from tests.app.database.models.conftest import TableOf
 
@@ -10,6 +12,13 @@ class TestShelter:
         column = table_of(Shelter).columns["instructions"]
 
         assert column.nullable is True
+
+    def test_approval_is_off_by_default(self, table_of: TableOf) -> None:
+        """По умолчанию записи в приют подтверждаются автоматически."""
+        default = table_of(Shelter).columns["is_approval_required"].server_default
+
+        assert isinstance(default, DefaultClause)
+        assert str(default.arg) == "false"
 
     def test_contacts_are_not_stored_in_shelter(self, table_of: TableOf) -> None:
         """Контакты лежат в отдельной таблице, а не в колонках приюта."""

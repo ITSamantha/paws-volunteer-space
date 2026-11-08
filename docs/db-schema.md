@@ -51,6 +51,7 @@ erDiagram
         varchar(255) title
         varchar(500) address
         text instructions "необяз."
+        bool is_approval_required
         timestamptz created_at
         timestamptz updated_at
         timestamptz deleted_at "необяз."

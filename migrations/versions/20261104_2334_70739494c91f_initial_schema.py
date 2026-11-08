@@ -47,6 +47,13 @@ def upgrade() -> None:
             comment="Стандартные требования приюта (сменная одежда, ограничения и т. п.)",
         ),
         sa.Column(
+            "is_approval_required",
+            sa.Boolean(),
+            server_default=sa.text("false"),
+            nullable=False,
+            comment="Нужно ли одобрять записи; значение по умолчанию для новых мероприятий приюта",
+        ),
+        sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),

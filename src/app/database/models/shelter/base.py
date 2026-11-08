@@ -1,4 +1,4 @@
-from sqlalchemy import String
+from sqlalchemy import String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -15,6 +15,10 @@ class Shelter(TimestampMixin, SoftDeleteMixin, Base):
     address: Mapped[str] = mapped_column(String(500), comment="Адрес приюта")
     instructions: Mapped[str | None] = mapped_column(
         comment="Стандартные требования приюта (сменная одежда, ограничения и т. п.)"
+    )
+    is_approval_required: Mapped[bool] = mapped_column(
+        server_default=text("false"),
+        comment="Нужно ли одобрять записи; значение по умолчанию для новых мероприятий приюта",
     )
 
     contacts: Mapped[list[ShelterContact]] = relationship(
