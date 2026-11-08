@@ -12,6 +12,7 @@ uv sync                         # создаёт .venv и ставит зави�
 cp .env.example .env            # затем задайте POSTGRES_PASSWORD
 docker compose -f docker-compose.dev.yml up -d db         # PostgreSQL на 127.0.0.1:5432
 uv run alembic upgrade head    # применить миграции
+uv run python -m app.database.seeders    # заполнить справочники (повторно запускать безопасно)
 uv run uvicorn app.main:app --reload   # http://127.0.0.1:8000/health
 ```
 

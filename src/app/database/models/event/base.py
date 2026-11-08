@@ -6,6 +6,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base, PgEnum
 from app.database.mixins import TimestampMixin
 from app.database.models.enums import EventStatus
+from app.database.models.event.bonus import Bonus
+from app.database.models.event.tag import Tag
 from app.database.models.registration import Registration
 from app.database.models.shelter import Shelter
 from app.database.models.user import User
@@ -16,6 +18,7 @@ class Event(TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("capacity > 0", name="capacity_positive"),
         CheckConstraint("ends_at IS NULL OR ends_at > starts_at", name="ends_after_start"),
+        CheckConstraint("location IS NOT NULL OR shelter_id IS NOT NULL", name="has_place"),
         Index("ix_events_status_starts_at", "status", "starts_at"),
         {"comment": "Волонтёрские мероприятия и поездки в приюты"},
     )
@@ -29,7 +32,9 @@ class Event(TimestampMixin, Base):
         ForeignKey("shelters.id", ondelete="SET NULL"),
         comment="Приют, в котором проходит мероприятие (если применимо)",
     )
-    location: Mapped[str] = mapped_column(String(500), comment="Место встречи или адрес проведения")
+    location: Mapped[str | None] = mapped_column(
+        String(500), comment="Место встречи; если не указано, используется адрес приюта"
+    )
     capacity: Mapped[int] = mapped_column(comment="Лимит участников; должен быть больше нуля")
     status: Mapped[EventStatus] = mapped_column(
         PgEnum.create(EventStatus, "event_status"),
@@ -40,6 +45,13 @@ class Event(TimestampMixin, Base):
         comment="Что взять с собой, требования приюта, прочая инструкция"
     )
     comment: Mapped[str | None] = mapped_column(comment="Прочая информация о мероприятии")
+    event_link: Mapped[str | None] = mapped_column(
+        String(500), comment="Ссылка на мероприятие на добро.рф (необязательно)"
+    )
+    telegram_chat_link: Mapped[str | None] = mapped_column(
+        String(500),
+        comment="Ссылка на Telegram-чат участников; показывается только подтверждённым",
+    )
     created_by: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"),
         comment="Организатор, создавший мероприятие",
@@ -48,3 +60,5 @@ class Event(TimestampMixin, Base):
     shelter: Mapped[Shelter | None] = relationship(lazy="raise")
     creator: Mapped[User] = relationship(foreign_keys=[created_by], lazy="raise")
     registrations: Mapped[list[Registration]] = relationship(lazy="raise")
+    bonuses: Mapped[list[Bonus]] = relationship(secondary="event_bonuses", lazy="raise")
+    tags: Mapped[list[Tag]] = relationship(secondary="event_tags", lazy="raise")

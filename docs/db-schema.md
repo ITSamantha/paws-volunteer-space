@@ -8,6 +8,12 @@ erDiagram
     shelters |o--o{ events : "shelter_id"
     users ||--o{ events : "created_by"
     events ||--o{ registrations : "event_id"
+    events ||--o{ event_bonuses : "event_id"
+    bonuses ||--o{ event_bonuses : "bonus_id"
+    events ||--o{ event_tags : "event_id"
+    tags ||--o{ event_tags : "tag_id"
+    users |o--o{ bonuses : "created_by"
+    users |o--o{ tags : "created_by"
     users ||--o{ registrations : "user_id"
     users ||--o{ broadcasts : "author_id"
     events |o--o{ broadcasts : "event_id"
@@ -20,9 +26,9 @@ erDiagram
         bigint telegram_id UK
         varchar(16) isu_id UK "необяз."
         varchar(64) volunteer_id UK "необяз."
-        varchar(64) username "необяз."
         varchar(255) full_name "необяз."
         varchar(16) phone
+        varchar(64) telegram_username "необяз."
         varchar(255) vk_link "необяз."
         user_status status "active | blocked"
         text comment "необяз."
@@ -64,14 +70,40 @@ erDiagram
         timestamptz starts_at
         timestamptz ends_at "необяз."
         int shelter_id FK "необяз."
-        varchar(500) location
+        varchar(500) location "необяз."
         int capacity
         event_status status "planned | cancelled | completed"
         text instructions "необяз."
         text comment "необяз."
+        varchar(500) event_link "необяз."
+        varchar(500) telegram_chat_link "необяз."
         int created_by FK
         timestamptz created_at
         timestamptz updated_at
+    }
+
+    bonuses {
+        int id PK
+        varchar(255) title
+        int created_by FK "необяз."
+        timestamptz created_at
+    }
+
+    event_bonuses {
+        int event_id PK, FK
+        int bonus_id PK, FK
+    }
+
+    tags {
+        int id PK
+        varchar(255) title
+        int created_by FK "необяз."
+        timestamptz created_at
+    }
+
+    event_tags {
+        int event_id PK, FK
+        int tag_id PK, FK
     }
 
     registrations {
@@ -118,7 +150,12 @@ erDiagram
 - `shelter_contacts`: уникальна комбинация (shelter_id, type, value)
 - `events`: `capacity > 0` (`ck_events_capacity_positive`)
 - `events`: `ends_at IS NULL OR ends_at > starts_at` (`ck_events_ends_after_start`)
+- `events`: `location IS NOT NULL OR shelter_id IS NOT NULL` (`ck_events_has_place`)
 - индекс `ix_events_status_starts_at` по (status, starts_at)
+- `bonuses`, `tags`: `title = btrim(title) AND title <> ''` (`ck_bonuses_title_trimmed`, `ck_tags_title_trimmed`)
+- уникальные индексы `uq_bonuses_title_lower`, `uq_tags_title_lower` по `lower(title)` (без учёта регистра)
+- индекс `ix_event_bonuses_bonus_id` по (bonus_id)
+- индекс `ix_event_tags_tag_id` по (tag_id)
 - `registrations`: уникальна комбинация (event_id, user_id)
 - индекс `ix_registrations_user_id` по (user_id)
 - индекс `ix_registrations_event_id_status` по (event_id, status)
@@ -127,6 +164,14 @@ erDiagram
 - индекс `ix_notifications_broadcast_id` по (broadcast_id)
 - индекс `ix_notifications_user_id` по (user_id)
 - индекс `ix_notifications_pending_scheduled_at` по (scheduled_at) где `status = 'pending'`
+
+## Начальные данные
+
+Заполняются сидерами из JSON (`src/app/database/seeders/data/`), не миграциями:
+`uv run python -m app.database.seeders`. Повторный запуск безопасен.
+
+- `bonuses`: ПГАС, Часы на добро.рф
+- `tags`: Выезд, Собаки
 
 ## Правила, которые живут в БД вне моделей
 

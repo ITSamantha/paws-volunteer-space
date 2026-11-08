@@ -22,7 +22,7 @@ class User(TimestampMixin, SoftDeleteMixin, Base):
     telegram_id: Mapped[int] = mapped_column(
         BigInteger,
         unique=True,
-        comment="Идентификатор пользователя в Telegram (не меняется, в отличие от username)",
+        comment="Идентификатор в Telegram (в отличие от telegram_username, не меняется)",
     )
     isu_id: Mapped[str | None] = mapped_column(
         String(16), unique=True, comment="Номер ИСУ (необязательно)"
@@ -30,13 +30,13 @@ class User(TimestampMixin, SoftDeleteMixin, Base):
     volunteer_id: Mapped[str | None] = mapped_column(
         String(64), unique=True, comment="Идентификатор волонтёра на добро.рф (необязательно)"
     )
-    username: Mapped[str | None] = mapped_column(
-        String(64), comment="@username в Telegram; может отсутствовать или меняться"
-    )
     full_name: Mapped[str | None] = mapped_column(
         String(255), comment="ФИО, указанное волонтёром; NULL, пока не заполнено"
     )
     phone: Mapped[str] = mapped_column(String(16), comment="Номер телефона")
+    telegram_username: Mapped[str | None] = mapped_column(
+        String(64), comment="@username в Telegram; может отсутствовать или меняться"
+    )
     vk_link: Mapped[str | None] = mapped_column(
         String(255), comment="Ссылка на профиль во ВКонтакте (необязательно)"
     )

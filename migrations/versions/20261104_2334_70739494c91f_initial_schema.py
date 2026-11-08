@@ -109,7 +109,7 @@ def upgrade() -> None:
             "telegram_id",
             sa.BigInteger(),
             nullable=False,
-            comment="Идентификатор пользователя в Telegram (не меняется, в отличие от username)",
+            comment="Идентификатор в Telegram (в отличие от telegram_username, не меняется)",
         ),
         sa.Column(
             "isu_id",
@@ -124,18 +124,18 @@ def upgrade() -> None:
             comment="Идентификатор волонтёра на добро.рф (необязательно)",
         ),
         sa.Column(
-            "username",
-            sa.String(length=64),
-            nullable=True,
-            comment="@username в Telegram; может отсутствовать или меняться",
-        ),
-        sa.Column(
             "full_name",
             sa.String(length=255),
             nullable=True,
             comment="ФИО, указанное волонтёром; NULL, пока не заполнено",
         ),
         sa.Column("phone", sa.String(length=16), nullable=False, comment="Номер телефона"),
+        sa.Column(
+            "telegram_username",
+            sa.String(length=64),
+            nullable=True,
+            comment="@username в Telegram; может отсутствовать или меняться",
+        ),
         sa.Column(
             "vk_link",
             sa.String(length=255),
@@ -222,8 +222,8 @@ def upgrade() -> None:
         sa.Column(
             "location",
             sa.String(length=500),
-            nullable=False,
-            comment="Место встречи или адрес проведения",
+            nullable=True,
+            comment="Место встречи; если не указано, используется адрес приюта",
         ),
         sa.Column(
             "capacity",
@@ -246,6 +246,18 @@ def upgrade() -> None:
         ),
         sa.Column("comment", sa.String(), nullable=True, comment="Прочая информация о мероприятии"),
         sa.Column(
+            "event_link",
+            sa.String(length=500),
+            nullable=True,
+            comment="Ссылка на мероприятие на добро.рф (необязательно)",
+        ),
+        sa.Column(
+            "telegram_chat_link",
+            sa.String(length=500),
+            nullable=True,
+            comment="Ссылка на Telegram-чат участников; показывается только подтверждённым",
+        ),
+        sa.Column(
             "created_by", sa.Integer(), nullable=False, comment="Организатор, создавший мероприятие"
         ),
         sa.Column(
@@ -266,6 +278,9 @@ def upgrade() -> None:
         sa.CheckConstraint(
             "ends_at IS NULL OR ends_at > starts_at", name=op.f("ck_events_ends_after_start")
         ),
+        sa.CheckConstraint(
+            "location IS NOT NULL OR shelter_id IS NOT NULL", name=op.f("ck_events_has_place")
+        ),
         sa.ForeignKeyConstraint(
             ["created_by"],
             ["users.id"],
@@ -282,6 +297,108 @@ def upgrade() -> None:
         comment="Волонтёрские мероприятия и поездки в приюты",
     )
     op.create_index("ix_events_status_starts_at", "events", ["status", "starts_at"], unique=False)
+    op.create_table(
+        "bonuses",
+        sa.Column("id", sa.Integer(), nullable=False, comment="Внутренний идентификатор"),
+        sa.Column("title", sa.String(length=255), nullable=False, comment="Название бонуса"),
+        sa.Column(
+            "created_by",
+            sa.Integer(),
+            nullable=True,
+            comment="Кто добавил бонус; NULL — бонус из начального справочника",
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+            comment="Дата и время создания записи",
+        ),
+        sa.ForeignKeyConstraint(
+            ["created_by"],
+            ["users.id"],
+            name=op.f("fk_bonuses_created_by_users"),
+            ondelete="RESTRICT",
+        ),
+        sa.CheckConstraint(
+            "title = btrim(title) AND title <> ''", name=op.f("ck_bonuses_title_trimmed")
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_bonuses")),
+        comment="Справочник бонусов за участие в мероприятиях",
+    )
+    op.create_index(
+        "uq_bonuses_title_lower", "bonuses", [sa.literal_column("lower(title)")], unique=True
+    )
+    op.create_table(
+        "event_bonuses",
+        sa.Column("event_id", sa.Integer(), nullable=False, comment="Мероприятие"),
+        sa.Column("bonus_id", sa.Integer(), nullable=False, comment="Бонус"),
+        sa.ForeignKeyConstraint(
+            ["bonus_id"],
+            ["bonuses.id"],
+            name=op.f("fk_event_bonuses_bonus_id_bonuses"),
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["event_id"],
+            ["events.id"],
+            name=op.f("fk_event_bonuses_event_id_events"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("event_id", "bonus_id", name=op.f("pk_event_bonuses")),
+        comment="Бонусы, которые получают участники мероприятия",
+    )
+    op.create_index(op.f("ix_event_bonuses_bonus_id"), "event_bonuses", ["bonus_id"], unique=False)
+    op.create_table(
+        "tags",
+        sa.Column("id", sa.Integer(), nullable=False, comment="Внутренний идентификатор"),
+        sa.Column("title", sa.String(length=255), nullable=False, comment="Название тега (без #)"),
+        sa.Column(
+            "created_by",
+            sa.Integer(),
+            nullable=True,
+            comment="Кто добавил тег; NULL — тег из начального справочника",
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+            comment="Дата и время создания записи",
+        ),
+        sa.ForeignKeyConstraint(
+            ["created_by"],
+            ["users.id"],
+            name=op.f("fk_tags_created_by_users"),
+            ondelete="RESTRICT",
+        ),
+        sa.CheckConstraint(
+            "title = btrim(title) AND title <> ''", name=op.f("ck_tags_title_trimmed")
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_tags")),
+        comment="Справочник тегов мероприятий",
+    )
+    op.create_index("uq_tags_title_lower", "tags", [sa.literal_column("lower(title)")], unique=True)
+    op.create_table(
+        "event_tags",
+        sa.Column("event_id", sa.Integer(), nullable=False, comment="Мероприятие"),
+        sa.Column("tag_id", sa.Integer(), nullable=False, comment="Тег"),
+        sa.ForeignKeyConstraint(
+            ["tag_id"],
+            ["tags.id"],
+            name=op.f("fk_event_tags_tag_id_tags"),
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["event_id"],
+            ["events.id"],
+            name=op.f("fk_event_tags_event_id_events"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("event_id", "tag_id", name=op.f("pk_event_tags")),
+        comment="Теги мероприятия",
+    )
+    op.create_index(op.f("ix_event_tags_tag_id"), "event_tags", ["tag_id"], unique=False)
     op.create_table(
         "user_roles",
         sa.Column(
@@ -549,6 +666,14 @@ def downgrade() -> None:
     op.execute("DROP TRIGGER trg_user_roles_check_granter ON user_roles")
     op.execute("DROP FUNCTION check_user_role_granter()")
     op.drop_table("user_roles")
+    op.drop_index(op.f("ix_event_tags_tag_id"), table_name="event_tags")
+    op.drop_table("event_tags")
+    op.drop_index("uq_tags_title_lower", table_name="tags")
+    op.drop_table("tags")
+    op.drop_index(op.f("ix_event_bonuses_bonus_id"), table_name="event_bonuses")
+    op.drop_table("event_bonuses")
+    op.drop_index("uq_bonuses_title_lower", table_name="bonuses")
+    op.drop_table("bonuses")
     op.drop_index("ix_events_status_starts_at", table_name="events")
     op.drop_table("events")
     op.drop_table("users")

@@ -13,6 +13,10 @@ class TestEvent:
         """Окончание не может быть раньше начала."""
         assert "ck_events_ends_after_start" in check_names(Event)
 
+    def test_place_is_required(self, check_names: CheckNames) -> None:
+        """У мероприятия должно быть место: свой location или приют."""
+        assert "ck_events_has_place" in check_names(Event)
+
     def test_contact_is_taken_from_organizer(self, table_of: TableOf) -> None:
         """Отдельных контактов у мероприятия нет: их берут у организатора (created_by)."""
         columns = table_of(Event).columns
