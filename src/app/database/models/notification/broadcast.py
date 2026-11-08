@@ -10,6 +10,8 @@ from app.database.models.user import User
 
 
 class Broadcast(CreatedAtMixin, Base):
+    """Рассылка сообщения выбранной аудитории."""
+
     __tablename__ = "broadcasts"
     __table_args__ = (
         CheckConstraint(

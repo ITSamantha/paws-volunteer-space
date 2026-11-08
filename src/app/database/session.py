@@ -17,6 +17,7 @@ class Database:
     @classmethod
     @lru_cache
     def engine(cls) -> AsyncEngine:
+        """Движок БД; один на процесс."""
         settings = Settings.get()
 
         return create_async_engine(
@@ -30,7 +31,10 @@ class Database:
     @classmethod
     @lru_cache
     def session_factory(cls) -> async_sessionmaker[AsyncSession]:
-        return async_sessionmaker(cls.engine(), expire_on_commit=False)
+        """Фабрика сессий; объекты не истекают после коммита."""
+        factory = async_sessionmaker(cls.engine(), expire_on_commit=False)
+
+        return factory
 
     @classmethod
     async def session(cls) -> AsyncGenerator[AsyncSession]:

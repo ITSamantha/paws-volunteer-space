@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models import Notification
 from app.database.models.enums import NotificationStatus, NotificationType
-from tests.app.database.conftest import Rejected
+from tests.app.conftest import Rejected
 from tests.app.database.factory import Factory
 
 pytestmark = pytest.mark.integration

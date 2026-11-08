@@ -8,6 +8,8 @@ from app.database.models.user.role import UserRole
 
 
 class User(TimestampMixin, SoftDeleteMixin, Base):
+    """Пользователь бота."""
+
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint(

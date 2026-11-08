@@ -7,6 +7,8 @@ from app.database.models.shelter.contact import ShelterContact
 
 
 class Shelter(TimestampMixin, SoftDeleteMixin, Base):
+    """Приют, в который проходят выезды."""
+
     __tablename__ = "shelters"
     __table_args__ = {"comment": "Справочник приютов"}
 

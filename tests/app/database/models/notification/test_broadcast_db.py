@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models import Broadcast
 from app.database.models.enums import BroadcastAudience, BroadcastStatus
-from tests.app.database.conftest import Rejected
+from tests.app.conftest import Rejected
 from tests.app.database.factory import Factory
 
 pytestmark = pytest.mark.integration

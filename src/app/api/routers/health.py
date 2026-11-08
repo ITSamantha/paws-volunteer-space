@@ -16,12 +16,14 @@ class HealthRouter:
 
     @staticmethod
     async def liveness() -> dict[str, str]:
+        """Процесс жив."""
         return {"status": "ok"}
 
     @staticmethod
     async def readiness(
         session: Annotated[AsyncSession, Depends(Database.session)],
     ) -> dict[str, str]:
+        """Приложение готово принимать запросы: база данных отвечает."""
         try:
             await session.execute(text("SELECT 1"))
         except SQLAlchemyError:
@@ -34,6 +36,7 @@ class HealthRouter:
 
     @classmethod
     def build(cls) -> APIRouter:
+        """Собирает роутер со служебными эндпоинтами."""
         router = APIRouter(tags=["service"])
 
         router.add_api_route("/health", cls.liveness, methods=["GET"])

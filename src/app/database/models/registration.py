@@ -10,6 +10,8 @@ from app.database.models.user import User
 
 
 class Registration(CreatedAtMixin, Base):
+    """Запись волонтёра на мероприятие."""
+
     __tablename__ = "registrations"
     __table_args__ = (
         CheckConstraint(

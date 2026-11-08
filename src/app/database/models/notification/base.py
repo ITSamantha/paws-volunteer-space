@@ -11,6 +11,8 @@ from app.database.models.enums import NotificationStatus, NotificationType
 
 
 class Notification(CreatedAtMixin, Base):
+    """Уведомление пользователю в очереди на отправку (outbox)."""
+
     __tablename__ = "notifications"
     __table_args__ = (
         Index(

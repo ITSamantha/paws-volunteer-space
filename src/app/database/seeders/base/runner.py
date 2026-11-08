@@ -13,6 +13,7 @@ class Seeders:
 
     @classmethod
     async def run(cls) -> None:
+        """Запускает все сидеры в одной транзакции."""
         async with Database.session_factory()() as session, session.begin():
             for seeder in cls.ORDER:
                 await seeder().run(session)
@@ -21,4 +22,5 @@ class Seeders:
 
     @classmethod
     def main(cls) -> None:
+        """Точка входа для командной строки."""
         asyncio.run(cls.run())

@@ -2,17 +2,23 @@ from enum import StrEnum
 
 
 class UserStatus(StrEnum):
+    """Статус пользователя."""
+
     ACTIVE = "active"
     BLOCKED = "blocked"
 
 
 class RoleType(StrEnum):
+    """Дополнительная роль пользователя; без роли пользователь — волонтёр."""
+
     ORGANIZER = "organizer"
     SMM = "smm"
     ADMIN = "admin"
 
 
 class ContactType(StrEnum):
+    """Тип контакта приюта."""
+
     PHONE = "phone"
     EMAIL = "email"
     WEBSITE = "website"
@@ -23,12 +29,16 @@ class ContactType(StrEnum):
 
 
 class EventStatus(StrEnum):
+    """Статус мероприятия."""
+
     PLANNED = "planned"
     CANCELLED = "cancelled"
     COMPLETED = "completed"
 
 
 class RegistrationStatus(StrEnum):
+    """Статус записи на мероприятие."""
+
     REGISTERED = "registered"
     PENDING = "pending"
     REJECTED = "rejected"
@@ -39,18 +49,24 @@ class RegistrationStatus(StrEnum):
 
 
 class BroadcastAudience(StrEnum):
+    """Аудитория рассылки."""
+
     ALL = "all"
     ANNOUNCEMENTS_SUBSCRIBERS = "announcements_subscribers"
     EVENT_PARTICIPANTS = "event_participants"
 
 
 class BroadcastStatus(StrEnum):
+    """Статус рассылки."""
+
     DRAFT = "draft"
     QUEUED = "queued"
     SENT = "sent"
 
 
 class NotificationType(StrEnum):
+    """Тип уведомления."""
+
     REGISTRATION_CONFIRMED = "registration_confirmed"
     REGISTRATION_PENDING = "registration_pending"
     REGISTRATION_APPROVED = "registration_approved"
@@ -70,6 +86,8 @@ class NotificationType(StrEnum):
 
 
 class NotificationStatus(StrEnum):
+    """Статус отправки уведомления."""
+
     PENDING = "pending"
     SENT = "sent"
     FAILED = "failed"

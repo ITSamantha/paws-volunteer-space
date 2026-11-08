@@ -8,6 +8,8 @@ from app.database.models.enums import RoleType
 
 
 class UserRole(Base):
+    """Дополнительная роль пользователя."""
+
     __tablename__ = "user_roles"
     __table_args__ = {"comment": "Дополнительные роли пользователей"}
 

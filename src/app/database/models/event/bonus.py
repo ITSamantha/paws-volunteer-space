@@ -6,6 +6,8 @@ from app.database.mixins import CreatedAtMixin, SoftDeleteMixin
 
 
 class Bonus(CreatedAtMixin, SoftDeleteMixin, Base):
+    """Справочник бонусов за участие в мероприятиях."""
+
     __tablename__ = "bonuses"
     __table_args__ = (
         CheckConstraint("title = btrim(title) AND title <> ''", name="title_trimmed"),
@@ -27,6 +29,8 @@ class Bonus(CreatedAtMixin, SoftDeleteMixin, Base):
 
 
 class EventBonus(Base):
+    """Связь мероприятия с бонусом."""
+
     __tablename__ = "event_bonuses"
     __table_args__ = {"comment": "Бонусы, которые получают участники мероприятия"}
 

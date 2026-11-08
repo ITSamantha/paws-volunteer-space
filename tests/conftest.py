@@ -9,6 +9,7 @@ from tests.postgres import Migrator, PostgresServer
 os.environ.setdefault("POSTGRES_DB", "test")
 os.environ.setdefault("POSTGRES_USER", "test")
 os.environ.setdefault("POSTGRES_PASSWORD", "test")
+os.environ.setdefault("AUTH_BOT_TOKEN", "test-bot-token-0123456789-abcdefghijklmnop")
 os.environ.setdefault("TESTCONTAINERS_RYUK_DISABLED", "true")
 
 

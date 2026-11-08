@@ -17,11 +17,15 @@ class TitleSeeder(Seeder):
 
     @classmethod
     def titles(cls) -> list[str]:
+        """Читает названия из JSON-файла."""
         content = (cls.DATA_DIRECTORY / cls.filename).read_text(encoding="utf-8")
 
-        return TypeAdapter(list[str]).validate_python(json.loads(content))
+        titles = TypeAdapter(list[str]).validate_python(json.loads(content))
+
+        return titles
 
     async def run(self, session: AsyncSession) -> None:
+        """Добавляет отсутствующие названия, существующие не трогает."""
         statement = (
             insert(self.model)
             .values([{"title": title} for title in self.titles()])

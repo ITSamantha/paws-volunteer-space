@@ -4,6 +4,8 @@ from sqlalchemy.engine import URL
 
 
 class DatabaseSettings(BaseSettings):
+    """Параметры подключения к PostgreSQL (переменные POSTGRES_*)."""
+
     model_config = SettingsConfigDict(
         env_prefix="POSTGRES_",
         env_file=".env",
@@ -20,6 +22,7 @@ class DatabaseSettings(BaseSettings):
 
     @property
     def url(self) -> URL:
+        """URL подключения для асинхронного драйвера asyncpg."""
         return URL.create(
             drivername="postgresql+asyncpg",
             username=self.user,

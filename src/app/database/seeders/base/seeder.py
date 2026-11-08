@@ -15,4 +15,5 @@ class Seeder(ABC):
     DATA_DIRECTORY: ClassVar[Traversable] = files("app.database.seeders") / "data"
 
     @abstractmethod
-    async def run(self, session: AsyncSession) -> None: ...
+    async def run(self, session: AsyncSession) -> None:
+        """Заполняет таблицу начальными данными."""

@@ -14,6 +14,8 @@ from app.database.models.user import User
 
 
 class Event(TimestampMixin, Base):
+    """Волонтёрское мероприятие или поездка в приют."""
+
     __tablename__ = "events"
     __table_args__ = (
         CheckConstraint("capacity > 0", name="capacity_positive"),

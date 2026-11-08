@@ -2,6 +2,7 @@ import logging
 
 from fastapi import FastAPI
 
+from app.api.errors import ErrorHandlers
 from app.api.routers import Routers
 from app.core.config import Settings
 from app.core.lifespan import Lifespan
@@ -12,6 +13,7 @@ class Application:
 
     @staticmethod
     def create() -> FastAPI:
+        """Создаёт приложение: настройки, обработчики ошибок и роутеры."""
         settings = Settings.get()
         logging.basicConfig(level=settings.app.log_level.upper())
 
@@ -27,6 +29,8 @@ class Application:
             redoc_url=redoc_url,
             openapi_url=openapi_url,
         )
+
+        ErrorHandlers.register(app)
 
         for router in Routers.all():
             app.include_router(router)

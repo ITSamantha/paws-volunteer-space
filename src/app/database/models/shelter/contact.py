@@ -6,6 +6,8 @@ from app.database.models.enums import ContactType
 
 
 class ShelterContact(Base):
+    """Контакт приюта."""
+
     __tablename__ = "shelter_contacts"
     __table_args__ = (
         UniqueConstraint(

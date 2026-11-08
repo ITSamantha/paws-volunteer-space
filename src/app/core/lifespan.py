@@ -12,6 +12,7 @@ class Lifespan:
     @staticmethod
     @asynccontextmanager
     async def run(_: FastAPI) -> AsyncIterator[None]:
+        """Работа приложения; при остановке закрывает соединения с БД."""
         yield
 
         await Database.engine().dispose()

@@ -6,6 +6,8 @@ from app.database.mixins import CreatedAtMixin, SoftDeleteMixin
 
 
 class Tag(CreatedAtMixin, SoftDeleteMixin, Base):
+    """Справочник тегов мероприятий."""
+
     __tablename__ = "tags"
     __table_args__ = (
         CheckConstraint("title = btrim(title) AND title <> ''", name="title_trimmed"),
@@ -27,6 +29,8 @@ class Tag(CreatedAtMixin, SoftDeleteMixin, Base):
 
 
 class EventTag(Base):
+    """Связь мероприятия с тегом."""
+
     __tablename__ = "event_tags"
     __table_args__ = {"comment": "Теги мероприятия"}
 
