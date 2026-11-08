@@ -114,6 +114,7 @@ erDiagram
         int user_id FK
         registration_status status "registered | pending | rejected | cancelled | waitlisted | attended | absent"
         timestamptz cancelled_at "необяз."
+        text cancellation_reason "необяз."
         timestamptz created_at
     }
 
@@ -158,6 +159,7 @@ erDiagram
 - уникальные индексы `uq_bonuses_title_lower`, `uq_tags_title_lower` по `lower(title)` (без учёта регистра)
 - индекс `ix_event_bonuses_bonus_id` по (bonus_id)
 - индекс `ix_event_tags_tag_id` по (tag_id)
+- `registrations`: `status <> 'cancelled' OR (cancellation_reason IS NOT NULL AND btrim(cancellation_reason) <> '')` (`ck_registrations_cancelled_requires_reason`)
 - `registrations`: уникальна комбинация (event_id, user_id)
 - индекс `ix_registrations_user_id` по (user_id)
 - индекс `ix_registrations_event_id_status` по (event_id, status)

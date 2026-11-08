@@ -17,6 +17,10 @@ class TestRegistrationConstraints:
 
         assert [list(c.columns.keys()) for c in uniques] == [["event_id", "user_id"]]
 
+    def test_cancellation_requires_reason(self, check_names: CheckNames) -> None:
+        """У отменённой записи обязательна причина."""
+        assert "ck_registrations_cancelled_requires_reason" in check_names(Registration)
+
 
 class TestBroadcastConstraints:
     """Ограничения таблицы broadcasts."""

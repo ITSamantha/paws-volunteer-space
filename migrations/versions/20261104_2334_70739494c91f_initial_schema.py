@@ -533,6 +533,12 @@ def upgrade() -> None:
             comment="Дата и время отмены записи; NULL, если не отменялась",
         ),
         sa.Column(
+            "cancellation_reason",
+            sa.String(),
+            nullable=True,
+            comment="Причина отмены записи; обязательна при статусе cancelled",
+        ),
+        sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
@@ -550,6 +556,10 @@ def upgrade() -> None:
             ["users.id"],
             name=op.f("fk_registrations_user_id_users"),
             ondelete="RESTRICT",
+        ),
+        sa.CheckConstraint(
+            "status <> 'cancelled' OR (cancellation_reason IS NOT NULL AND btrim(cancellation_reason) <> '')",
+            name=op.f("ck_registrations_cancelled_requires_reason"),
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_registrations")),
         sa.UniqueConstraint("event_id", "user_id", name="uq_registrations_event_id_user_id"),
