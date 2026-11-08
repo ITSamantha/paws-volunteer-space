@@ -33,6 +33,23 @@ CHECK_GRANTER_TRIGGER = """CREATE TRIGGER trg_user_roles_check_granter
 BEFORE INSERT OR UPDATE OF role, granted_by ON user_roles
 FOR EACH ROW EXECUTE FUNCTION check_user_role_granter()"""
 
+CHECK_DECIDER_FUNCTION = """CREATE FUNCTION check_registration_decider() RETURNS trigger AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM events WHERE id = NEW.event_id AND created_by = NEW.decided_by
+    ) THEN
+        RAISE EXCEPTION 'Решение по заявке может принять только ответственный организатор'
+            USING ERRCODE = 'check_violation';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql"""
+
+CHECK_DECIDER_TRIGGER = """CREATE TRIGGER trg_registrations_check_decider
+BEFORE INSERT OR UPDATE OF event_id, decided_by ON registrations
+FOR EACH ROW WHEN (NEW.decided_by IS NOT NULL)
+EXECUTE FUNCTION check_registration_decider()"""
+
 
 def upgrade() -> None:
     op.create_table(
@@ -253,6 +270,12 @@ def upgrade() -> None:
             comment="Статус мероприятия",
         ),
         sa.Column(
+            "cancellation_reason",
+            sa.String(),
+            nullable=True,
+            comment="Причина отмены мероприятия; обязательна при статусе cancelled",
+        ),
+        sa.Column(
             "instructions",
             sa.String(),
             nullable=True,
@@ -287,6 +310,11 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
             comment="Дата и время последнего изменения записи",
+        ),
+        sa.CheckConstraint(
+            "status <> 'cancelled' OR "
+            "(cancellation_reason IS NOT NULL AND btrim(cancellation_reason) <> '')",
+            name=op.f("ck_events_cancelled_requires_reason"),
         ),
         sa.CheckConstraint("capacity > 0", name=op.f("ck_events_capacity_positive")),
         sa.CheckConstraint(
@@ -530,13 +558,31 @@ def upgrade() -> None:
             "cancelled_at",
             sa.DateTime(timezone=True),
             nullable=True,
-            comment="Дата и время отмены записи; NULL, если не отменялась",
+            comment="Дата и время отмены записи; заполнено тогда и только тогда, когда статус cancelled",
         ),
         sa.Column(
             "cancellation_reason",
             sa.String(),
             nullable=True,
             comment="Причина отмены записи; обязательна при статусе cancelled",
+        ),
+        sa.Column(
+            "decided_by",
+            sa.Integer(),
+            nullable=True,
+            comment="Ответственный организатор, принявший решение по заявке; NULL — решения не было",
+        ),
+        sa.Column(
+            "decided_at",
+            sa.DateTime(timezone=True),
+            nullable=True,
+            comment="Дата и время решения; заполнено тогда и только тогда, когда есть decided_by",
+        ),
+        sa.Column(
+            "decision_comment",
+            sa.String(),
+            nullable=True,
+            comment="Комментарий к решению организатора; обязателен при статусе rejected",
         ),
         sa.Column(
             "created_at",
@@ -561,6 +607,24 @@ def upgrade() -> None:
             "status <> 'cancelled' OR (cancellation_reason IS NOT NULL AND btrim(cancellation_reason) <> '')",
             name=op.f("ck_registrations_cancelled_requires_reason"),
         ),
+        sa.CheckConstraint(
+            "(status = 'cancelled') = (cancelled_at IS NOT NULL)",
+            name=op.f("ck_registrations_cancelled_at_matches_status"),
+        ),
+        sa.CheckConstraint(
+            "(decided_by IS NULL) = (decided_at IS NULL)",
+            name=op.f("ck_registrations_decision_author_matches_time"),
+        ),
+        sa.CheckConstraint(
+            "status <> 'rejected' OR (decided_by IS NOT NULL AND decision_comment IS NOT NULL AND btrim(decision_comment) <> '')",
+            name=op.f("ck_registrations_rejected_requires_decision"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["decided_by"],
+            ["users.id"],
+            name=op.f("fk_registrations_decided_by_users"),
+            ondelete="RESTRICT",
+        ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_registrations")),
         sa.UniqueConstraint("event_id", "user_id", name="uq_registrations_event_id_user_id"),
         comment="Записи волонтёров на мероприятия",
@@ -569,6 +633,8 @@ def upgrade() -> None:
         "ix_registrations_event_id_status", "registrations", ["event_id", "status"], unique=False
     )
     op.create_index(op.f("ix_registrations_user_id"), "registrations", ["user_id"], unique=False)
+    op.execute(CHECK_DECIDER_FUNCTION)
+    op.execute(CHECK_DECIDER_TRIGGER)
     op.create_table(
         "notifications",
         sa.Column("id", sa.Integer(), nullable=False, comment="Внутренний идентификатор"),
@@ -611,6 +677,12 @@ def upgrade() -> None:
             postgresql.JSONB(astext_type=sa.Text()),
             nullable=True,
             comment="Данные для подстановки в шаблон сообщения",
+        ),
+        sa.Column(
+            "dedup_key",
+            sa.String(length=255),
+            nullable=True,
+            comment="Ключ защиты от дублей: у получателя не бывает двух уведомлений с одним ключом",
         ),
         sa.Column(
             "status",
@@ -674,6 +746,13 @@ def upgrade() -> None:
         op.f("ix_notifications_broadcast_id"), "notifications", ["broadcast_id"], unique=False
     )
     op.create_index(
+        "uq_notifications_user_id_dedup_key",
+        "notifications",
+        ["user_id", "dedup_key"],
+        unique=True,
+        postgresql_where=sa.text("dedup_key IS NOT NULL"),
+    )
+    op.create_index(
         "ix_notifications_pending_scheduled_at",
         "notifications",
         ["scheduled_at"],
@@ -684,6 +763,11 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.drop_index(
+        "uq_notifications_user_id_dedup_key",
+        table_name="notifications",
+        postgresql_where=sa.text("dedup_key IS NOT NULL"),
+    )
     op.drop_index(op.f("ix_notifications_user_id"), table_name="notifications")
     op.drop_index(
         "ix_notifications_pending_scheduled_at",
@@ -692,6 +776,8 @@ def downgrade() -> None:
     )
     op.drop_index(op.f("ix_notifications_broadcast_id"), table_name="notifications")
     op.drop_table("notifications")
+    op.execute("DROP TRIGGER trg_registrations_check_decider ON registrations")
+    op.execute("DROP FUNCTION check_registration_decider()")
     op.drop_index(op.f("ix_registrations_user_id"), table_name="registrations")
     op.drop_index("ix_registrations_event_id_status", table_name="registrations")
     op.drop_table("registrations")

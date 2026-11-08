@@ -21,7 +21,8 @@ uv run uvicorn app.main:app --reload   # http://127.0.0.1:8000/health
 ```bash
 uv run ruff check . && uv run ruff format --check .
 uv run mypy
-uv run pytest
+uv run pytest                        # проверки на реальной БД требуют Docker; без него пропускаются
+uv run pytest -m "not integration"   # только быстрые проверки без БД
 ```
 
 ## Структура

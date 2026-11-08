@@ -17,6 +17,20 @@ class Registration(CreatedAtMixin, Base):
             "(cancellation_reason IS NOT NULL AND btrim(cancellation_reason) <> '')",
             name="cancelled_requires_reason",
         ),
+        CheckConstraint(
+            "(status = 'cancelled') = (cancelled_at IS NOT NULL)",
+            name="cancelled_at_matches_status",
+        ),
+        CheckConstraint(
+            "(decided_by IS NULL) = (decided_at IS NULL)",
+            name="decision_author_matches_time",
+        ),
+        CheckConstraint(
+            "status <> 'rejected' OR "
+            "(decided_by IS NOT NULL AND decision_comment IS NOT NULL "
+            "AND btrim(decision_comment) <> '')",
+            name="rejected_requires_decision",
+        ),
         UniqueConstraint("event_id", "user_id", name="uq_registrations_event_id_user_id"),
         Index("ix_registrations_event_id_status", "event_id", "status"),
         {"comment": "Записи волонтёров на мероприятия"},
@@ -35,10 +49,20 @@ class Registration(CreatedAtMixin, Base):
         comment="Статус записи",
     )
     cancelled_at: Mapped[datetime | None] = mapped_column(
-        comment="Дата и время отмены записи; NULL, если не отменялась"
+        comment="Дата и время отмены записи; заполнено тогда и только тогда, когда статус cancelled"
     )
     cancellation_reason: Mapped[str | None] = mapped_column(
         comment="Причина отмены записи; обязательна при статусе cancelled"
     )
+    decided_by: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        comment="Ответственный организатор, принявший решение по заявке; NULL — решения не было",
+    )
+    decided_at: Mapped[datetime | None] = mapped_column(
+        comment="Дата и время решения; заполнено тогда и только тогда, когда есть decided_by"
+    )
+    decision_comment: Mapped[str | None] = mapped_column(
+        comment="Комментарий к решению организатора; обязателен при статусе rejected"
+    )
 
-    user: Mapped[User] = relationship(lazy="raise")
+    user: Mapped[User] = relationship(foreign_keys=[user_id], lazy="raise")

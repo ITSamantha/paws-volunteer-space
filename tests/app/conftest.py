@@ -6,8 +6,8 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import OperationalError
 
+from app.application import Application
 from app.database.session import Database
-from app.main import create_app
 
 
 class HealthySession:
@@ -22,7 +22,7 @@ class BrokenSession:
 
 @pytest.fixture
 def app() -> FastAPI:
-    return create_app()
+    return Application.create()
 
 
 @pytest.fixture

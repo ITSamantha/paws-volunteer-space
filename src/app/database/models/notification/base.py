@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ForeignKey, Index, func, text
+from sqlalchemy import ForeignKey, Index, String, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -17,6 +17,13 @@ class Notification(CreatedAtMixin, Base):
             "ix_notifications_pending_scheduled_at",
             "scheduled_at",
             postgresql_where=text("status = 'pending'"),
+        ),
+        Index(
+            "uq_notifications_user_id_dedup_key",
+            "user_id",
+            "dedup_key",
+            unique=True,
+            postgresql_where=text("dedup_key IS NOT NULL"),
         ),
         {"comment": "Очередь уведомлений пользователям (outbox)"},
     )
@@ -39,6 +46,10 @@ class Notification(CreatedAtMixin, Base):
     )
     payload: Mapped[dict[str, Any] | None] = mapped_column(
         JSONB, comment="Данные для подстановки в шаблон сообщения"
+    )
+    dedup_key: Mapped[str | None] = mapped_column(
+        String(255),
+        comment="Ключ защиты от дублей: у получателя не бывает двух уведомлений с одним ключом",
     )
     status: Mapped[NotificationStatus] = mapped_column(
         PgEnum.create(NotificationStatus, "notification_status"),

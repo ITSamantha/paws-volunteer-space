@@ -15,6 +15,7 @@ erDiagram
     users |o--o{ bonuses : "created_by"
     users |o--o{ tags : "created_by"
     users ||--o{ registrations : "user_id"
+    users |o--o{ registrations : "decided_by"
     users ||--o{ broadcasts : "author_id"
     events |o--o{ broadcasts : "event_id"
     users ||--o{ notifications : "user_id"
@@ -75,6 +76,7 @@ erDiagram
         int capacity
         bool is_approval_required
         event_status status "planned | cancelled | completed"
+        text cancellation_reason "необяз."
         text instructions "необяз."
         text comment "необяз."
         varchar(500) event_link "необяз."
@@ -115,6 +117,9 @@ erDiagram
         registration_status status "registered | pending | rejected | cancelled | waitlisted | attended | absent"
         timestamptz cancelled_at "необяз."
         text cancellation_reason "необяз."
+        int decided_by FK "необяз."
+        timestamptz decided_at "необяз."
+        text decision_comment "необяз."
         timestamptz created_at
     }
 
@@ -136,6 +141,7 @@ erDiagram
         int event_id FK "необяз."
         int broadcast_id FK "необяз."
         jsonb payload "необяз."
+        varchar(255) dedup_key "необяз."
         notification_status status "pending | sent | failed"
         timestamptz scheduled_at
         timestamptz sent_at "необяз."
@@ -153,6 +159,7 @@ erDiagram
 - `shelter_contacts`: уникальна комбинация (shelter_id, type, value)
 - `events`: `capacity > 0` (`ck_events_capacity_positive`)
 - `events`: `ends_at IS NULL OR ends_at > starts_at` (`ck_events_ends_after_start`)
+- `events`: `status <> 'cancelled' OR (cancellation_reason IS NOT NULL AND btrim(cancellation_reason) <> '')` (`ck_events_cancelled_requires_reason`)
 - `events`: `location IS NOT NULL OR shelter_id IS NOT NULL` (`ck_events_has_place`)
 - индекс `ix_events_status_starts_at` по (status, starts_at)
 - `bonuses`, `tags`: `title = btrim(title) AND title <> ''` (`ck_bonuses_title_trimmed`, `ck_tags_title_trimmed`)
@@ -160,6 +167,9 @@ erDiagram
 - индекс `ix_event_bonuses_bonus_id` по (bonus_id)
 - индекс `ix_event_tags_tag_id` по (tag_id)
 - `registrations`: `status <> 'cancelled' OR (cancellation_reason IS NOT NULL AND btrim(cancellation_reason) <> '')` (`ck_registrations_cancelled_requires_reason`)
+- `registrations`: `(status = 'cancelled') = (cancelled_at IS NOT NULL)` (`ck_registrations_cancelled_at_matches_status`)
+- `registrations`: `(decided_by IS NULL) = (decided_at IS NULL)` (`ck_registrations_decision_author_matches_time`)
+- `registrations`: `status <> 'rejected' OR (decided_by IS NOT NULL AND decision_comment IS NOT NULL AND btrim(decision_comment) <> '')` (`ck_registrations_rejected_requires_decision`)
 - `registrations`: уникальна комбинация (event_id, user_id)
 - индекс `ix_registrations_user_id` по (user_id)
 - индекс `ix_registrations_event_id_status` по (event_id, status)
@@ -167,6 +177,7 @@ erDiagram
 - индекс `ix_broadcasts_author_id` по (author_id)
 - индекс `ix_notifications_broadcast_id` по (broadcast_id)
 - индекс `ix_notifications_user_id` по (user_id)
+- уникальный индекс `uq_notifications_user_id_dedup_key` по (user_id, dedup_key) где `dedup_key IS NOT NULL`
 - индекс `ix_notifications_pending_scheduled_at` по (scheduled_at) где `status = 'pending'`
 
 ## Начальные данные
@@ -182,3 +193,6 @@ erDiagram
 - Роли `admin` и `organizer` может выдать только администратор. Правило реализовано
   триггером `trg_user_roles_check_granter` в миграции. Исключение: самовыдача роли
   `admin`, пока в таблице нет ни одного администратора.
+- Решение по заявке (`registrations.decided_by`) может принять только ответственный
+  организатор мероприятия (`events.created_by`). Правило реализовано триггером
+  `trg_registrations_check_decider` в миграции.

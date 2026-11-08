@@ -18,6 +18,11 @@ class Event(TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("capacity > 0", name="capacity_positive"),
         CheckConstraint("ends_at IS NULL OR ends_at > starts_at", name="ends_after_start"),
+        CheckConstraint(
+            "status <> 'cancelled' OR "
+            "(cancellation_reason IS NOT NULL AND btrim(cancellation_reason) <> '')",
+            name="cancelled_requires_reason",
+        ),
         CheckConstraint("location IS NOT NULL OR shelter_id IS NOT NULL", name="has_place"),
         Index("ix_events_status_starts_at", "status", "starts_at"),
         {"comment": "Волонтёрские мероприятия и поездки в приюты"},
@@ -44,6 +49,9 @@ class Event(TimestampMixin, Base):
         PgEnum.create(EventStatus, "event_status"),
         server_default=EventStatus.PLANNED.value,
         comment="Статус мероприятия",
+    )
+    cancellation_reason: Mapped[str | None] = mapped_column(
+        comment="Причина отмены мероприятия; обязательна при статусе cancelled"
     )
     instructions: Mapped[str | None] = mapped_column(
         comment="Что взять с собой, требования приюта, прочая инструкция"

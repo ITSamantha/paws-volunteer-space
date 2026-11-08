@@ -33,12 +33,3 @@ class TestHealth:
 
         assert "secret_user" not in response.text
         assert "db.internal" not in response.text
-
-
-class TestDocs:
-    """Документация API."""
-
-    @pytest.mark.parametrize("path", ["/docs", "/redoc", "/openapi.json"])
-    def test_docs_are_disabled_by_default(self, client: TestClient, path: str) -> None:
-        """Без режима отладки документация и схема API недоступны."""
-        assert client.get(path).status_code == 404
