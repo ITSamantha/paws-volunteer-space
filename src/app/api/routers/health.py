@@ -29,11 +29,14 @@ class HealthRouter:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="database unavailable"
             ) from None
+
         return {"status": "ok"}
 
     @classmethod
     def build(cls) -> APIRouter:
         router = APIRouter(tags=["service"])
+
         router.add_api_route("/health", cls.liveness, methods=["GET"])
         router.add_api_route("/health/ready", cls.readiness, methods=["GET"])
+
         return router

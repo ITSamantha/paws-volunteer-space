@@ -40,6 +40,7 @@ class PostgresServer:
         self._container.exec(
             ["psql", "-U", self.USER, "-d", self.ADMIN_DATABASE, "-c", f'CREATE DATABASE "{name}"']
         )
+
         return self.url(name)
 
     def url(self, database: str) -> URL:
@@ -70,10 +71,13 @@ class Migrator:
             "POSTGRES_USER": str(url.username),
             "POSTGRES_PASSWORD": str(url.password),
         }
+
         with patch.dict(os.environ, environment):
             Settings.get.cache_clear()
+
             try:
                 config = Config(str(ROOT / "alembic.ini"))
+
                 with ThreadPoolExecutor(max_workers=1) as executor:
                     executor.submit(action, config).result()
             finally:

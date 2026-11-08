@@ -13,4 +13,5 @@ class Lifespan:
     @asynccontextmanager
     async def run(_: FastAPI) -> AsyncIterator[None]:
         yield
+
         await Database.engine().dispose()

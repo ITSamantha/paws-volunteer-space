@@ -18,6 +18,7 @@ class Database:
     @lru_cache
     def engine(cls) -> AsyncEngine:
         settings = Settings.get()
+
         return create_async_engine(
             settings.database.url,
             echo=settings.app.is_debug_enabled,

@@ -16,6 +16,7 @@ class Seeders:
         async with Database.session_factory()() as session, session.begin():
             for seeder in cls.ORDER:
                 await seeder().run(session)
+
         await Database.engine().dispose()
 
     @classmethod

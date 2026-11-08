@@ -18,6 +18,7 @@ class TitleSeeder(Seeder):
     @classmethod
     def titles(cls) -> list[str]:
         content = (cls.DATA_DIRECTORY / cls.filename).read_text(encoding="utf-8")
+
         return TypeAdapter(list[str]).validate_python(json.loads(content))
 
     async def run(self, session: AsyncSession) -> None:
@@ -26,4 +27,5 @@ class TitleSeeder(Seeder):
             .values([{"title": title} for title in self.titles()])
             .on_conflict_do_nothing()
         )
+
         await session.execute(statement)

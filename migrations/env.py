@@ -23,19 +23,23 @@ def _configure(**kwargs: Any) -> None:
 
 def run_migrations_offline() -> None:
     url = Settings.get().database.url.render_as_string(hide_password=False)
+
     _configure(url=url, literal_binds=True, dialect_opts={"paramstyle": "named"})
+
     with context.begin_transaction():
         context.run_migrations()
 
 
 def _run_sync_migrations(connection: Connection) -> None:
     _configure(connection=connection)
+
     with context.begin_transaction():
         context.run_migrations()
 
 
 async def run_migrations_online() -> None:
     engine = create_async_engine(Settings.get().database.url)
+
     try:
         async with engine.connect() as connection:
             await connection.run_sync(_run_sync_migrations)

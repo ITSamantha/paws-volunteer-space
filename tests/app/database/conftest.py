@@ -15,7 +15,9 @@ Rejected = Callable[[str], AbstractAsyncContextManager[None]]
 @pytest.fixture
 async def engine(migrated_database_url: URL) -> AsyncIterator[AsyncEngine]:
     engine = create_async_engine(migrated_database_url, poolclass=NullPool)
+
     yield engine
+
     await engine.dispose()
 
 
@@ -28,6 +30,7 @@ async def session(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
             bind=connection, join_transaction_mode="create_savepoint", expire_on_commit=False
         ) as session:
             yield session
+
         await transaction.rollback()
 
 
@@ -38,12 +41,14 @@ def rejected(session: AsyncSession) -> Rejected:
     @asynccontextmanager
     async def expect(fragment: str) -> AsyncIterator[None]:
         message = ""
+
         try:
             async with session.begin_nested():
                 yield
                 await session.flush()
         except IntegrityError as error:
             message = str(error)
+
         assert fragment in message, f"БД не отклонила действие, ожидалось нарушение {fragment}"
 
     return expect

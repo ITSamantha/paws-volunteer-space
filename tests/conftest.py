@@ -15,11 +15,14 @@ os.environ.setdefault("TESTCONTAINERS_RYUK_DISABLED", "true")
 @pytest.fixture(scope="session")
 def postgres_server() -> Iterator[PostgresServer]:
     server = PostgresServer()
+
     try:
         server.start()
     except Exception as error:
         pytest.skip(f"Docker недоступен, проверки на реальной БД пропущены: {error}")
+
     yield server
+
     server.stop()
 
 
@@ -31,5 +34,7 @@ def migrator() -> Migrator:
 @pytest.fixture(scope="session")
 def migrated_database_url(postgres_server: PostgresServer, migrator: Migrator) -> URL:
     url = postgres_server.create_database("migrated")
+
     migrator.upgrade(url)
+
     return url
