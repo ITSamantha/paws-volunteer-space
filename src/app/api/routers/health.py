@@ -6,7 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.routing import BaseRouter, Route
+from app.api.routers.base import BaseRouter, Route
 from app.database.session import Database
 
 logger = logging.getLogger(__name__)
