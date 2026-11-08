@@ -74,7 +74,7 @@ class UserService:
         self, filters: UserFilters, pagination: Pagination, current_user: User
     ) -> tuple[list[User], int]:
         """Ищет пользователей; доступно организаторам и админам."""
-        self.__require_staff(current_user)
+        Access.require_staff(current_user)
 
         users, total = await self.__users.search(filters, pagination)
 
@@ -157,7 +157,7 @@ class UserService:
 
     async def __require_manageable(self, user_id: int, current_user: User) -> User:
         """Возвращает пользователя, статус которого текущий пользователь вправе менять."""
-        self.__require_staff(current_user)
+        Access.require_staff(current_user)
 
         if user_id == current_user.id:
             raise ForbiddenError("Нельзя менять собственный статус")
@@ -168,12 +168,6 @@ class UserService:
             raise ForbiddenError("Блокировать администратора может только администратор")
 
         return user
-
-    @staticmethod
-    def __require_staff(current_user: User) -> None:
-        """Только организаторы и администраторы."""
-        if not Access.is_staff(current_user):
-            raise ForbiddenError("Доступно только организаторам и администраторам")
 
     @staticmethod
     def __require_self_or_staff(current_user: User, user_id: int) -> None:

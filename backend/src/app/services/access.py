@@ -1,5 +1,6 @@
 from typing import ClassVar
 
+from app.core.exceptions import ForbiddenError
 from app.database.models import User
 from app.database.models.enums import RoleType
 
@@ -26,6 +27,18 @@ class Access:
     def is_admin(cls, user: User) -> bool:
         """Пользователь — администратор."""
         return bool(cls.roles(user) & cls.ADMIN_ROLES)
+
+    @classmethod
+    def require_staff(cls, user: User) -> None:
+        """Допускает только организаторов и администраторов."""
+        if not cls.is_staff(user):
+            raise ForbiddenError("Доступно только организаторам и администраторам")
+
+    @classmethod
+    def require_admin(cls, user: User) -> None:
+        """Допускает только администраторов."""
+        if not cls.is_admin(user):
+            raise ForbiddenError("Доступно только администраторам")
 
     @classmethod
     def is_staff(cls, user: User) -> bool:

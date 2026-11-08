@@ -25,6 +25,16 @@ class FieldValidators:
         return value
 
     @staticmethod
+    def tag_title(value: str) -> str:
+        """Убирает ведущий # из названия тега: теги хранятся без него."""
+        title = value.removeprefix("#").strip()
+
+        if not title:
+            raise ValueError("название тега не может быть пустым")
+
+        return title
+
+    @staticmethod
     def strip_at(value: str) -> str:
         """Убирает ведущий @ из имени пользователя Telegram."""
         return value.removeprefix("@")
@@ -40,4 +50,11 @@ TelegramUsername = Annotated[
 IsuId = Annotated[str, StringConstraints(pattern=r"^[0-9]{1,16}$")]
 VolunteerId = Annotated[str, StringConstraints(min_length=1, max_length=64)]
 VkLink = Annotated[str, StringConstraints(max_length=255), AfterValidator(FieldValidators.vk_link)]
+Title = Annotated[str, StringConstraints(min_length=1, max_length=255)]
+TagTitle = Annotated[
+    str, StringConstraints(min_length=1, max_length=255), AfterValidator(FieldValidators.tag_title)
+]
+Address = Annotated[str, StringConstraints(min_length=1, max_length=500)]
+Instructions = Annotated[str, StringConstraints(min_length=1, max_length=5000)]
+ContactValue = Annotated[str, StringConstraints(min_length=1, max_length=500)]
 Comment = Annotated[str, StringConstraints(min_length=1, max_length=2000)]

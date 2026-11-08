@@ -9,7 +9,7 @@ from app.api.dependencies import (
     Dependencies,
     PageParams,
 )
-from app.api.routers.base import BaseRouter, Route
+from app.api.routers.base.router import BaseRouter, Route
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError, UnauthorizedError
 from app.database.models import User
 from app.database.models.enums import RoleType, UserStatus

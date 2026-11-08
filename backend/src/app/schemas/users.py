@@ -1,13 +1,11 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Self
 
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
     field_validator,
-    model_validator,
 )
 
 from app.database.models.enums import RoleType, UserStatus
@@ -20,6 +18,7 @@ from app.schemas.fields import (
     VkLink,
     VolunteerId,
 )
+from app.schemas.partial import PartialUpdate
 
 
 class UserCreate(BaseModel):
@@ -53,10 +52,10 @@ class UserCreate(BaseModel):
         return value
 
 
-class UserUpdate(BaseModel):
+class UserUpdate(PartialUpdate):
     """Изменяемые поля профиля; переданные поля заменяются, null очищает необязательные."""
 
-    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    required_fields = ("full_name", "phone", "has_notifications_enabled")
 
     telegram_username: TelegramUsername | None = Field(
         default=None, description="Имя пользователя в Telegram; null очищает"
@@ -73,21 +72,6 @@ class UserUpdate(BaseModel):
     has_notifications_enabled: bool | None = Field(
         default=None, description="Получать необязательные уведомления и рассылки"
     )
-
-    @model_validator(mode="after")
-    def _required_fields_cannot_be_cleared(self) -> Self:
-        """Обязательные поля нельзя очистить значением null."""
-        required = ("full_name", "phone", "has_notifications_enabled")
-        cleared = [
-            name
-            for name in required
-            if name in self.model_fields_set and getattr(self, name) is None
-        ]
-
-        if cleared:
-            raise ValueError(f"поля нельзя очистить: {', '.join(cleared)}")
-
-        return self
 
 
 class UserRead(BaseModel):
