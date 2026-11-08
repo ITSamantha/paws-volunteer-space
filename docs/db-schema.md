@@ -132,7 +132,7 @@ erDiagram
     notifications {
         int id PK
         int user_id FK
-        notification_type type "registration_confirmed | event_changed | event_cancelled | reminder | new_event | organizer_new_registration | organizer_cancellation | broadcast"
+        notification_type type "registration_confirmed | registration_pending | registration_approved | registration_rejected | registration_waitlisted | spot_freed | registration_cancelled | event_changed | event_cancelled | reminder | new_event | organizer_new_registration | organizer_approval_requested | organizer_cancellation | user_blocked | broadcast"
         int event_id FK "необяз."
         int broadcast_id FK "необяз."
         jsonb payload "необяз."

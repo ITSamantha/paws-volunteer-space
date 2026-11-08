@@ -52,12 +52,20 @@ class BroadcastStatus(StrEnum):
 
 class NotificationType(StrEnum):
     REGISTRATION_CONFIRMED = "registration_confirmed"
+    REGISTRATION_PENDING = "registration_pending"
+    REGISTRATION_APPROVED = "registration_approved"
+    REGISTRATION_REJECTED = "registration_rejected"
+    REGISTRATION_WAITLISTED = "registration_waitlisted"
+    SPOT_FREED = "spot_freed"
+    REGISTRATION_CANCELLED = "registration_cancelled"
     EVENT_CHANGED = "event_changed"
     EVENT_CANCELLED = "event_cancelled"
     REMINDER = "reminder"
     NEW_EVENT = "new_event"
     ORGANIZER_NEW_REGISTRATION = "organizer_new_registration"
+    ORGANIZER_APPROVAL_REQUESTED = "organizer_approval_requested"
     ORGANIZER_CANCELLATION = "organizer_cancellation"
+    USER_BLOCKED = "user_blocked"
     BROADCAST = "broadcast"
 
 
