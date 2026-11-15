@@ -12,11 +12,15 @@ API платформы Paw Volunteer Space: организация меропр�
 uv sync                         # создаёт .venv и ставит зависимости из uv.lock
 
 cp .env.example .env            # затем задайте POSTGRES_PASSWORD и AUTH_BOT_TOKEN (от 32 символов)
-docker compose --env-file .env -f ../docker-compose.dev.yml up -d db         # PostgreSQL на 127.0.0.1:5432
+docker compose --env-file .env -f ../docker-compose.dev.yml up -d db         # PostgreSQL на 127.0.0.1:5432 (добавьте kafka, если нужны уведомления)
 uv run alembic upgrade head    # применить миграции
 uv run python -m app.database.seeders    # заполнить справочники (повторно запускать безопасно)
 uv run uvicorn app.main:app --reload   # http://127.0.0.1:8000/health
 ```
+
+## Уведомления боту
+
+Из эндпоинтов API публикует события в Kafka (`KAFKA_IS_ENABLED=true`, топик `KAFKA_NOTIFICATIONS_TOPIC`). Сервис `NotificationService` копит события во время запроса и отправляет их **после** успешного коммита: бот не узнает о том, чего не произошло. Если брокер недоступен, запрос всё равно успешен, ошибка пишется в лог. Событие содержит тип, приоритет (1 — высокий, 2 — обычный, 3 — низкий), данные и время отправки `send_at` (пусто — сразу); очередь, повторы и отправка в Telegram на стороне бота.
 
 ## Проверки
 

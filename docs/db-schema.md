@@ -144,7 +144,8 @@ erDiagram
         int broadcast_id FK "необяз."
         jsonb payload "необяз."
         varchar(255) dedup_key "необяз."
-        notification_status status "pending | sent | failed"
+        smallint priority "1 высокий | 2 обычный | 3 низкий"
+        notification_status status "pending | queued | sent | failed"
         timestamptz scheduled_at
         timestamptz sent_at "необяз."
         int attempts
@@ -180,7 +181,8 @@ erDiagram
 - индекс `ix_notifications_broadcast_id` по (broadcast_id)
 - индекс `ix_notifications_user_id` по (user_id)
 - уникальный индекс `uq_notifications_user_id_dedup_key` по (user_id, dedup_key) где `dedup_key IS NOT NULL`
-- индекс `ix_notifications_pending_scheduled_at` по (scheduled_at) где `status = 'pending'`
+- `notifications`: `priority BETWEEN 1 AND 3` (`ck_notifications_priority_range`)
+- индекс `ix_notifications_pending_priority_scheduled_at` по (priority, scheduled_at) где `status = 'pending'`
 
 ## Начальные данные
 

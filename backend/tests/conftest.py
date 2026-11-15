@@ -4,6 +4,7 @@ from collections.abc import Iterator
 import pytest
 from sqlalchemy import URL
 
+from tests.kafka import KafkaServer
 from tests.postgres import Migrator, PostgresServer
 
 os.environ.setdefault("POSTGRES_DB", "test")
@@ -21,6 +22,20 @@ def postgres_server() -> Iterator[PostgresServer]:
         server.start()
     except Exception as error:
         pytest.skip(f"Docker недоступен, проверки на реальной БД пропущены: {error}")
+
+    yield server
+
+    server.stop()
+
+
+@pytest.fixture(scope="session")
+def kafka_server() -> Iterator[KafkaServer]:
+    server = KafkaServer()
+
+    try:
+        server.start()
+    except Exception as error:
+        pytest.skip(f"Docker недоступен, проверки с Kafka пропущены: {error}")
 
     yield server
 

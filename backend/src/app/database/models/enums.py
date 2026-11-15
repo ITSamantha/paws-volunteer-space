@@ -1,4 +1,4 @@
-from enum import StrEnum
+from enum import IntEnum, StrEnum
 
 
 class UserStatus(StrEnum):
@@ -64,6 +64,14 @@ class BroadcastStatus(StrEnum):
     SENT = "sent"
 
 
+class NotificationPriority(IntEnum):
+    """Приоритет отправки уведомления: чем меньше число, тем раньше уходит."""
+
+    HIGH = 1
+    NORMAL = 2
+    LOW = 3
+
+
 class NotificationType(StrEnum):
     """Тип уведомления."""
 
@@ -84,10 +92,26 @@ class NotificationType(StrEnum):
     USER_BLOCKED = "user_blocked"
     BROADCAST = "broadcast"
 
+    @property
+    def priority(self) -> NotificationPriority:
+        """Приоритет по типу: срочное — вперёд, массовые рассылки — в конец очереди."""
+        match self:
+            case (
+                NotificationType.EVENT_CANCELLED
+                | NotificationType.EVENT_CHANGED
+                | NotificationType.SPOT_FREED
+            ):
+                return NotificationPriority.HIGH
+            case NotificationType.NEW_EVENT | NotificationType.BROADCAST:
+                return NotificationPriority.LOW
+            case _:
+                return NotificationPriority.NORMAL
+
 
 class NotificationStatus(StrEnum):
     """Статус отправки уведомления."""
 
     PENDING = "pending"
+    QUEUED = "queued"
     SENT = "sent"
     FAILED = "failed"

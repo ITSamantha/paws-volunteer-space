@@ -22,6 +22,7 @@ class TestNotificationInDatabase:
 
         assert notification.status is NotificationStatus.PENDING
         assert notification.attempts == 0
+        assert notification.priority == 2
         assert notification.scheduled_at is not None
         assert notification.sent_at is None
 
@@ -100,3 +101,15 @@ class TestNotificationInDatabase:
             select(Notification).where(Notification.user_id == user.id)
         )
         assert remaining.all() == []
+
+    @pytest.mark.parametrize("priority", [0, 4, -1])
+    async def test_priority_must_be_in_range(
+        self, session: AsyncSession, factory: Factory, rejected: Rejected, priority: int
+    ) -> None:
+        """Приоритет бывает только от 1 до 3."""
+        user = await factory.user()
+
+        async with rejected("ck_notifications_priority_range"):
+            session.add(
+                Notification(user_id=user.id, type=NotificationType.REMINDER, priority=priority)
+            )

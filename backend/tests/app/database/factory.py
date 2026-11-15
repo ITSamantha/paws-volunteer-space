@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 from itertools import count
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models import Event, Registration, Shelter, User, UserRole
@@ -32,6 +33,20 @@ class Factory:
         await self._session.flush()
 
         return granted
+
+    async def admin(self, **fields: Any) -> User:
+        """Администратор: первого назначает он сам, следующих — уже существующий."""
+        admin = await self.user(**fields)
+        existing = await self._session.scalar(
+            select(User)
+            .join(UserRole, UserRole.user_id == User.id)
+            .where(UserRole.role == RoleType.ADMIN, User.id != admin.id)
+            .limit(1)
+        )
+
+        await self.role(admin, RoleType.ADMIN, existing)
+
+        return admin
 
     async def shelter(self, **fields: Any) -> Shelter:
         values: dict[str, Any] = {"title": "Приют", "address": "Санкт-Петербург"}

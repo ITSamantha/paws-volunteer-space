@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ForeignKey, Index, String, func, text
+from sqlalchemy import CheckConstraint, ForeignKey, Index, SmallInteger, String, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -15,8 +15,10 @@ class Notification(CreatedAtMixin, Base):
 
     __tablename__ = "notifications"
     __table_args__ = (
+        CheckConstraint("priority BETWEEN 1 AND 3", name="priority_range"),
         Index(
-            "ix_notifications_pending_scheduled_at",
+            "ix_notifications_pending_priority_scheduled_at",
+            "priority",
             "scheduled_at",
             postgresql_where=text("status = 'pending'"),
         ),
@@ -52,6 +54,11 @@ class Notification(CreatedAtMixin, Base):
     dedup_key: Mapped[str | None] = mapped_column(
         String(255),
         comment="Ключ защиты от дублей: у получателя не бывает двух уведомлений с одним ключом",
+    )
+    priority: Mapped[int] = mapped_column(
+        SmallInteger,
+        server_default=text("2"),
+        comment="Приоритет отправки: 1 — высокий, 2 — обычный, 3 — низкий; задаётся типом",
     )
     status: Mapped[NotificationStatus] = mapped_column(
         PgEnum.create(NotificationStatus, "notification_status"),

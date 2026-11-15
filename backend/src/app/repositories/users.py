@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from typing import ClassVar, NoReturn
 
 from sqlalchemy import Select, delete, func, select
@@ -86,6 +87,13 @@ class UserRepository:
         users = await self.__session.scalars(statement)
 
         return list(users), total or 0
+
+    async def telegram_ids(self, user_ids: Iterable[int]) -> dict[int, int]:
+        """Telegram ID пользователей по их внутренним ID."""
+        statement = select(User.id, User.telegram_id).where(User.id.in_(set(user_ids)))
+        rows = await self.__session.execute(statement)
+
+        return dict(rows.all())
 
     async def count_admins(self) -> int:
         """Число администраторов."""

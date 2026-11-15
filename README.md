@@ -7,6 +7,12 @@
 | Каталог | Назначение |
 |---|---|
 | [backend/](backend/README.md) | API на FastAPI и PostgreSQL |
-| `bot/` | Telegram-бот, общается с API по HTTP (появится позже) |
+| [bot/](bot/README.md) | Telegram-бот: очередь доставки уведомлений, переводы |
 
-Общее лежит в корне: `docker-compose.dev.yml` и `docs/` (схема БД).
+Общее лежит в корне: `docker-compose.dev.yml` (PostgreSQL и Kafka) и `docs/` (схема БД).
+
+## Как проект общается
+
+- **Бот → API**: HTTP, токен бота и заголовок `X-Telegram-Id`.
+- **API → бот**: события в один топик Kafka (`paws.notifications`). API только публикует событие с приоритетом и рассчитанным временем отправки (пусто — сразу). Очередь, соблюдение времени, повторы и отправка в Telegram целиком на стороне бота.
+- **База**: одна PostgreSQL. У API и у бота свои таблицы и свои таблицы версий Alembic (`alembic_version` и `alembic_version_bot`).

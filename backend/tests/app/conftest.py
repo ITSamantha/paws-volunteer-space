@@ -1,6 +1,7 @@
 from collections.abc import AsyncIterator, Callable, Iterator
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import Any
+from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI
@@ -8,13 +9,21 @@ from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import URL
 from sqlalchemy.exc import IntegrityError, OperationalError
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.pool import NullPool
 
 from app.application import Application
 from app.core.config import Settings
 from app.database.session import Database
+from app.messaging.publisher import Publishing
+from app.messaging.schemas import NotificationMessage
 from tests.app.database.factory import Factory
+from tests.postgres import Migrator, PostgresServer
 
 
 class HealthySession:
@@ -52,6 +61,27 @@ def broken_database(app: FastAPI) -> None:
         yield BrokenSession()
 
     app.dependency_overrides[Database.session] = override
+
+
+class FakePublisher:
+    """Запоминает события для бота вместо отправки в Kafka."""
+
+    def __init__(self) -> None:
+        self.messages: list[NotificationMessage] = []
+
+    async def publish(self, message: NotificationMessage) -> None:
+        self.messages.append(message)
+
+
+@pytest.fixture
+def published() -> Iterator[FakePublisher]:
+    """События, которые приложение отправило боту за время проверки."""
+    publisher = FakePublisher()
+    Publishing.use(publisher)
+
+    yield publisher
+
+    Publishing.use(None)
 
 
 Rejected = Callable[[str], AbstractAsyncContextManager[None]]
@@ -121,3 +151,17 @@ async def api(app: FastAPI, session: AsyncSession) -> AsyncIterator[AsyncClient]
         headers={"Authorization": f"Bearer {token}"},
     ) as client:
         yield client
+
+
+@pytest.fixture
+async def committed_sessions(
+    postgres_server: PostgresServer, migrator: Migrator
+) -> AsyncIterator[async_sessionmaker[AsyncSession]]:
+    """Отдельная чистая база и настоящие соединения: данные видны после коммита."""
+    url = postgres_server.create_database(f"committed_{uuid4().hex[:12]}")
+    migrator.upgrade(url)
+    engine = create_async_engine(url, poolclass=NullPool)
+
+    yield async_sessionmaker(engine, expire_on_commit=False)
+
+    await engine.dispose()

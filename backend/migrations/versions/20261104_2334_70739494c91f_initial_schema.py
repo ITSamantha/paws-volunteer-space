@@ -707,8 +707,15 @@ def upgrade() -> None:
             comment="Ключ защиты от дублей: у получателя не бывает двух уведомлений с одним ключом",
         ),
         sa.Column(
+            "priority",
+            sa.SmallInteger(),
+            server_default=sa.text("2"),
+            nullable=False,
+            comment="Приоритет отправки: 1 — высокий, 2 — обычный, 3 — низкий; задаётся типом",
+        ),
+        sa.Column(
             "status",
-            sa.Enum("pending", "sent", "failed", name="notification_status"),
+            sa.Enum("pending", "queued", "sent", "failed", name="notification_status"),
             server_default="pending",
             nullable=False,
             comment="Статус отправки",
@@ -743,6 +750,9 @@ def upgrade() -> None:
             nullable=False,
             comment="Дата и время создания записи",
         ),
+        sa.CheckConstraint(
+            "priority BETWEEN 1 AND 3", name=op.f("ck_notifications_priority_range")
+        ),
         sa.ForeignKeyConstraint(
             ["broadcast_id"],
             ["broadcasts.id"],
@@ -775,9 +785,9 @@ def upgrade() -> None:
         postgresql_where=sa.text("dedup_key IS NOT NULL"),
     )
     op.create_index(
-        "ix_notifications_pending_scheduled_at",
+        "ix_notifications_pending_priority_scheduled_at",
         "notifications",
-        ["scheduled_at"],
+        ["priority", "scheduled_at"],
         unique=False,
         postgresql_where=sa.text("status = 'pending'"),
     )
@@ -792,7 +802,7 @@ def downgrade() -> None:
     )
     op.drop_index(op.f("ix_notifications_user_id"), table_name="notifications")
     op.drop_index(
-        "ix_notifications_pending_scheduled_at",
+        "ix_notifications_pending_priority_scheduled_at",
         table_name="notifications",
         postgresql_where=sa.text("status = 'pending'"),
     )

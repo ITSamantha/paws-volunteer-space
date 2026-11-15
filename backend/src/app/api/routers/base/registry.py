@@ -1,9 +1,11 @@
 from fastapi import APIRouter
 
 from app.api.routers.base.router import BaseRouter
+from app.api.routers.event.base import EventsRouter
 from app.api.routers.event.bonuses import BonusesRouter
 from app.api.routers.event.tags import TagsRouter
 from app.api.routers.health import HealthRouter
+from app.api.routers.registrations import RegistrationsRouter
 from app.api.routers.shelters import SheltersRouter
 from app.api.routers.users import UsersRouter
 
@@ -18,8 +20,10 @@ class Routers:
             HealthRouter,
             UsersRouter,
             BonusesRouter,
+            EventsRouter,
             TagsRouter,
             SheltersRouter,
+            RegistrationsRouter,
         ]
 
         built: list[APIRouter] = []

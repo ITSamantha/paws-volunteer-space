@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import ClassVar
 
 from sqlalchemy import CheckConstraint, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -36,6 +37,26 @@ class Registration(CreatedAtMixin, Base):
         UniqueConstraint("event_id", "user_id", name="uq_registrations_event_id_user_id"),
         Index("ix_registrations_event_id_status", "event_id", "status"),
         {"comment": "Записи волонтёров на мероприятия"},
+    )
+
+    OCCUPYING_STATUSES: ClassVar[frozenset[RegistrationStatus]] = frozenset(
+        {RegistrationStatus.REGISTERED, RegistrationStatus.PENDING, RegistrationStatus.ATTENDED}
+    )
+    CONFIRMED_STATUSES: ClassVar[frozenset[RegistrationStatus]] = frozenset(
+        {RegistrationStatus.REGISTERED, RegistrationStatus.ATTENDED}
+    )
+    CANCELLABLE_STATUSES: ClassVar[frozenset[RegistrationStatus]] = frozenset(
+        {RegistrationStatus.REGISTERED, RegistrationStatus.PENDING, RegistrationStatus.WAITLISTED}
+    )
+    ATTENDANCE_STATUSES: ClassVar[frozenset[RegistrationStatus]] = frozenset(
+        {RegistrationStatus.REGISTERED, RegistrationStatus.ATTENDED, RegistrationStatus.ABSENT}
+    )
+    NOTIFIABLE_STATUSES: ClassVar[frozenset[RegistrationStatus]] = frozenset(
+        {
+            RegistrationStatus.REGISTERED,
+            RegistrationStatus.PENDING,
+            RegistrationStatus.WAITLISTED,
+        }
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, comment="Внутренний идентификатор")

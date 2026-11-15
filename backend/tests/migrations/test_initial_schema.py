@@ -42,7 +42,9 @@ async def differences(url: URL) -> list[object]:
     engine = create_async_engine(url, poolclass=NullPool)
     try:
         async with engine.connect() as connection:
-            return await connection.run_sync(compare)
+            differences = await connection.run_sync(compare)
+
+            return differences
     finally:
         await engine.dispose()
 

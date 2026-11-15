@@ -34,6 +34,13 @@ class NotFoundError(AppError):
     code = "not_found"
 
 
+class UnprocessableError(AppError):
+    """Данные запроса верны по форме, но не подходят по смыслу (422)."""
+
+    status_code = 422
+    code = "unprocessable"
+
+
 class ConflictError(AppError):
     """Действие конфликтует с текущим состоянием данных (409)."""
 
