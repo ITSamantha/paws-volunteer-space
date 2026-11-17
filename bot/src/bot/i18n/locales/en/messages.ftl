@@ -38,7 +38,19 @@ menu-mine = 💛 My registrations
 menu-organizer = 🗂 For organizers
 menu-soon = This part is still being prepared. You will be able to use it soon.
 menu-back = ← Back to menu
+events-to-list = ← Back to the list
+events-join = 💛 Sign up
+events-joined-registered = You are signed up. You will be able to cancel if your plans change.
+events-joined-pending = Your request is sent. We will write when the organizer decides.
+events-joined-waitlisted = There is no place yet, so you are on the waiting list. We will write if one opens.
+events-already = You are already signed up for this visit.
 events-title = Where you can go. Tap a visit to open it.
 events-empty = There are no upcoming visits yet. We will write when a new one appears.
-events-unavailable = The list could not be opened. Please try again in a moment.
-events-card-soon = The visit card is coming next.
+events-unavailable = This could not be opened. Please try again in a moment.
+events-place-unknown = the meeting place will be confirmed
+events-card =
+    🐾 { $title }
+    When: { $when }
+    Where: { $place }
+    Free places: { $free } of { $capacity }
+    { $details }

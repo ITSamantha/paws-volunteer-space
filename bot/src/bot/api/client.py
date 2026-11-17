@@ -28,6 +28,32 @@ class EventLine(BaseModel):
     capacity: int
 
 
+class EventPlace(BaseModel):
+    """Место выезда: приют или точка встречи."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    title: str | None = None
+    address: str | None = None
+
+
+class EventCard(BaseModel):
+    """Карточка мероприятия для сообщения бота."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    title: str
+    starts_at: datetime
+    location: str | None = None
+    shelter: EventPlace | None = None
+    capacity: int
+    occupied: int = 0
+    description: str | None = None
+    instructions: str | None = None
+    status: str
+
+
 class EventPage(BaseModel):
     """Страница мероприятий."""
 
@@ -35,6 +61,16 @@ class EventPage(BaseModel):
 
     items: list[EventLine]
     total: int
+
+
+class RegistrationResult(BaseModel):
+    """Ответ на запись: место получено, ждёт одобрения или в листе ожидания."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    event_id: int
+    status: str
 
 
 class Profile(BaseModel):
@@ -74,9 +110,26 @@ class ApiClient:
             telegram_id,
             params={"status": "planned", "limit": 8},
         )
+
         page = EventPage.model_validate(self.__json(response))
 
         return page
+
+    async def event(self, telegram_id: int, event_id: int) -> EventCard:
+        """Карточка одного мероприятия."""
+        response = await self.request("GET", f"/api/events/{event_id}", telegram_id)
+
+        card = EventCard.model_validate(self.__json(response))
+
+        return card
+
+    async def register(self, telegram_id: int, event_id: int) -> RegistrationResult:
+        """Записывает пользователя на мероприятие."""
+        response = await self.request("POST", f"/api/events/{event_id}/registrations", telegram_id)
+
+        result = RegistrationResult.model_validate(self.__json(response))
+
+        return result
 
     async def request(
         self, method: str, path: str, telegram_id: int, **kwargs: Any

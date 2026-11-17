@@ -79,3 +79,46 @@ class TestApiClient:
         assert page.total == 1
         assert page.items[0].id == 4
         assert page.items[0].title == "Выезд"
+
+    async def test_event_loads_one_card(self) -> None:
+        """Карточка запрашивается по ID мероприятия."""
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.url.path == "/api/events/4"
+            return httpx.Response(
+                200,
+                json={
+                    "id": 4,
+                    "title": "Выезд",
+                    "starts_at": "2030-03-05T07:00:00Z",
+                    "location": "Метро",
+                    "capacity": 5,
+                    "occupied": 1,
+                    "status": "planned",
+                },
+            )
+
+        card = await client(httpx.MockTransport(handler)).event(7, 4)
+
+        assert card.title == "Выезд"
+        assert card.location == "Метро"
+
+    async def test_register_posts_the_current_user(self) -> None:
+        """Запись уходит POST-ом на мероприятие от имени пользователя."""
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.method == "POST"
+            assert request.url.path == "/api/events/4/registrations"
+            assert request.headers["x-telegram-id"] == "7"
+            body = {
+                "id": 9,
+                "event_id": 4,
+                "status": "pending",
+                "created_at": "2030-01-01T00:00:00Z",
+            }
+
+            return httpx.Response(201, json=body)
+
+        result = await client(httpx.MockTransport(handler)).register(7, 4)
+
+        assert result.status == "pending"
