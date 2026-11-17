@@ -50,7 +50,7 @@ class TestMenu:
         await start(message, locales, translator, api(["smm"]))
 
         keyboard = message.answer.await_args.kwargs["reply_markup"]
-        assert "🗂 Для организаторов" in labels(keyboard)
+        assert labels(keyboard)[:3] == ["🐾 Мероприятия", "💛 Мои записи", "🗂 Для организаторов"]
 
     async def test_unfinished_section_says_it_is_next(
         self, locales: LocaleRepository, translator: Translator

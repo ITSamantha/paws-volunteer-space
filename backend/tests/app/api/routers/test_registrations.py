@@ -41,6 +41,20 @@ async def fill(factory: Factory, event: Event, count: int) -> None:
 class TestRegister:
     """Запись на мероприятие."""
 
+    @pytest.mark.parametrize("role", ["organizer", "admin"])
+    async def test_staff_can_sign_up_like_volunteers(
+        self, api: AsyncClient, factory: Factory, role: str
+    ) -> None:
+        """Организатор и администратор тоже ездят: роль не забирает запись волонтёра."""
+        admin = await make_admin(factory)
+        traveler = admin if role == "admin" else await make_organizer(factory, admin)
+        event = await factory.event(organizer=await make_organizer(factory, admin))
+
+        response = await api.post(url(event), headers=as_user(traveler))
+
+        assert response.status_code == 201
+        assert response.json()["status"] == RegistrationStatus.REGISTERED
+
     async def test_volunteer_gets_a_place(self, api: AsyncClient, factory: Factory) -> None:
         """При свободных местах запись подтверждается сразу."""
         _, event = await event_of(factory)

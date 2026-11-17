@@ -22,7 +22,7 @@ class Menu:
     def keyboard(
         cls, translator: Translator, locale: str, roles: list[str]
     ) -> InlineKeyboardMarkup:
-        """Меню волонтёра и, для персонала, кнопка организатора. Внизу выбор языка."""
+        """Кнопки волонтёра у всех. Организатору, администратору и SMM добавляется свой раздел."""
         translate = translator.translate
         rows = [
             [InlineKeyboardButton(text=translate(locale, "menu-events"), callback_data=cls.EVENTS)],
