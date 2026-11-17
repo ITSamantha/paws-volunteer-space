@@ -2,12 +2,14 @@ import asyncio
 import logging
 from datetime import timedelta
 
+import httpx
 from aiogram import Dispatcher
 from sqlalchemy import URL
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 
+from bot.api.client import ApiClient
 from bot.config import Settings
-from bot.handlers import language, start
+from bot.handlers import language, menu, start
 from bot.i18n.repository import LocaleRepository
 from bot.i18n.translator import Translator
 from bot.messaging.consumer import NotificationConsumer
@@ -41,12 +43,15 @@ class Application:
         await jobs.purge_finished(timedelta(days=settings.queue.keep_finished_days))
 
         bot = TelegramSender.create_bot(settings.telegram.bot_token.get_secret_value())
+        http = httpx.AsyncClient(base_url=settings.api.base_url, timeout=10)
+        api = ApiClient(settings.api.bot_token.get_secret_value(), http)
         worker = QueueWorker(
             jobs, locales, TelegramSender(bot), Messages(translator), settings.queue
         )
         consumer = NotificationConsumer(settings.kafka, jobs)
-        dispatcher = Dispatcher(locales=locales, translator=translator)
+        dispatcher = Dispatcher(locales=locales, translator=translator, api=api)
         dispatcher.include_router(start.router)
+        dispatcher.include_router(menu.router)
         dispatcher.include_router(language.router)
 
         await consumer.start()
@@ -64,6 +69,7 @@ class Application:
 
             outcomes = await asyncio.gather(*tasks, return_exceptions=True)
             await consumer.stop()
+            await http.aclose()
             await bot.session.close()
             await engine.dispose()
 

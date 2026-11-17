@@ -15,6 +15,7 @@ from tests.kafka import KafkaServer
 from tests.postgres import Migrator, PostgresServer
 
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "123456:test-token-0123456789")
+os.environ.setdefault("AUTH_BOT_TOKEN", "test-bot-token-with-32-characters")
 os.environ.setdefault("POSTGRES_DB", "test")
 os.environ.setdefault("POSTGRES_USER", "test")
 os.environ.setdefault("POSTGRES_PASSWORD", "test")

@@ -32,3 +32,7 @@ field-instructions = what to bring
 start-greeting =
     Hi! I'm the bot of the “Helping Paws” club. Here you will get notifications about events and registrations. More features are coming soon.
 language-changed = Language changed: English
+menu-events = Events
+menu-mine = My registrations
+menu-organizer = For organizers
+menu-soon = This section is coming next.

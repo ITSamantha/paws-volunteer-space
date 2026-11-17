@@ -66,7 +66,7 @@ class TestApplication:
         consumer.start.assert_awaited_once()
         consumer.stop.assert_awaited_once()
         jobs.purge_finished.assert_awaited_once()
-        assert dispatcher.include_router.call_count == 2
+        assert dispatcher.include_router.call_count == 3
         dispatcher.start_polling.assert_awaited_once_with(bot)
         bot.session.close.assert_awaited_once()
         engine.dispose.assert_awaited_once()

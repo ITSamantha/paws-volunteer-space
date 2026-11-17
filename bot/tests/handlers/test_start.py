@@ -4,6 +4,7 @@ import pytest
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from bot.api.client import ApiClient
 from bot.handlers.start import start
 from bot.i18n.repository import LocaleRepository
 from bot.i18n.translator import Translator
@@ -33,6 +34,14 @@ def answered(message: MagicMock) -> str:
     return str(message.answer.await_args.args[0])
 
 
+def api(roles: list[str] | None) -> ApiClient:
+    client = MagicMock(spec=ApiClient)
+    profile = None if roles is None else MagicMock(roles=roles)
+    client.profile = AsyncMock(return_value=profile)
+
+    return client
+
+
 class TestStart:
     """Команда /start."""
 
@@ -42,7 +51,7 @@ class TestStart:
         """Бот здоровается на языке из настроек Telegram и запоминает его."""
         message = incoming(language_code="en-US")
 
-        await start(message, locales, translator)
+        await start(message, locales, translator, api(None))
 
         assert "Helping Paws" in answered(message)
         assert await locales.get(1) == "en"
@@ -53,7 +62,7 @@ class TestStart:
         """Для неизвестного языка выбирается русский."""
         message = incoming(language_code="de")
 
-        await start(message, locales, translator)
+        await start(message, locales, translator, api(None))
 
         assert "Лапки помощи" in answered(message)
         assert await locales.get(1) == "ru"
@@ -65,7 +74,7 @@ class TestStart:
         await locales.set(1, "ru")
         message = incoming(language_code="en")
 
-        await start(message, locales, translator)
+        await start(message, locales, translator, api(None))
 
         assert "Лапки помощи" in answered(message)
 
@@ -76,6 +85,6 @@ class TestStart:
         message = incoming()
         message.from_user = None
 
-        await start(message, locales, translator)
+        await start(message, locales, translator, api(None))
 
         message.answer.assert_not_awaited()

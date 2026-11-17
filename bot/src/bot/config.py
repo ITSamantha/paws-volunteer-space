@@ -54,6 +54,15 @@ class DatabaseSettings(BaseSettings):
         )
 
 
+class ApiSettings(BaseSettings):
+    """Доступ к API (API_BASE_URL и тот же AUTH_BOT_TOKEN, что у бэкенда)."""
+
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    base_url: str = Field(default="http://127.0.0.1:8000", validation_alias="API_BASE_URL")
+    bot_token: SecretStr = Field(min_length=32, validation_alias="AUTH_BOT_TOKEN")
+
+
 class QueueSettings(BaseSettings):
     """Очередь доставки (переменные QUEUE_*)."""
 
@@ -89,6 +98,7 @@ class Settings(BaseModel):
     kafka: KafkaSettings = Field(default_factory=KafkaSettings)
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     queue: QueueSettings = Field(default_factory=QueueSettings)
+    api: ApiSettings = Field(default_factory=ApiSettings)
 
     @classmethod
     @lru_cache
