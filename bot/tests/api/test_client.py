@@ -122,3 +122,35 @@ class TestApiClient:
         result = await client(httpx.MockTransport(handler)).register(7, 4)
 
         assert result.status == "pending"
+
+    async def test_own_registrations_are_loaded_for_the_user(self) -> None:
+        """Свои записи запрашиваются с ограничением страницы."""
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.url.path == "/api/registrations/me"
+            assert request.url.params["limit"] == "8"
+            assert request.headers["x-telegram-id"] == "7"
+            return httpx.Response(
+                200,
+                json={
+                    "items": [
+                        {
+                            "id": 1,
+                            "status": "waitlisted",
+                            "event": {
+                                "id": 4,
+                                "title": "Выезд",
+                                "starts_at": "2030-03-05T07:00:00Z",
+                            },
+                        }
+                    ],
+                    "total": 1,
+                    "limit": 8,
+                    "offset": 0,
+                },
+            )
+
+        items = await client(httpx.MockTransport(handler)).own_registrations(7)
+
+        assert items[0].status == "waitlisted"
+        assert items[0].event.title == "Выезд"

@@ -63,6 +63,26 @@ class EventPage(BaseModel):
     total: int
 
 
+class OwnVisit(BaseModel):
+    """Мероприятие внутри своей записи."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    title: str
+    starts_at: datetime
+
+
+class OwnRegistration(BaseModel):
+    """Своя запись на выезд."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    status: str
+    event: OwnVisit
+
+
 class RegistrationResult(BaseModel):
     """Ответ на запись: место получено, ждёт одобрения или в листе ожидания."""
 
@@ -130,6 +150,16 @@ class ApiClient:
         result = RegistrationResult.model_validate(self.__json(response))
 
         return result
+
+    async def own_registrations(self, telegram_id: int) -> list[OwnRegistration]:
+        """Последние записи пользователя."""
+        response = await self.request(
+            "GET", "/api/registrations/me", telegram_id, params={"limit": 8}
+        )
+        body = self.__json(response)
+        items = [OwnRegistration.model_validate(item) for item in body["items"]]
+
+        return items
 
     async def request(
         self, method: str, path: str, telegram_id: int, **kwargs: Any
