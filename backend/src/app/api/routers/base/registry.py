@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.routers.base.router import BaseRouter
+from app.api.routers.broadcasts import BroadcastsRouter
 from app.api.routers.event.base import EventsRouter
 from app.api.routers.event.bonuses import BonusesRouter
 from app.api.routers.event.tags import TagsRouter
@@ -24,6 +25,7 @@ class Routers:
             TagsRouter,
             SheltersRouter,
             RegistrationsRouter,
+            BroadcastsRouter,
         ]
 
         built: list[APIRouter] = []

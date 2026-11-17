@@ -10,6 +10,9 @@ class Access:
 
     ADMIN_ROLES: ClassVar[frozenset[RoleType]] = frozenset({RoleType.ADMIN})
     STAFF_ROLES: ClassVar[frozenset[RoleType]] = frozenset({RoleType.ADMIN, RoleType.ORGANIZER})
+    PUBLISHER_ROLES: ClassVar[frozenset[RoleType]] = frozenset(
+        {RoleType.ADMIN, RoleType.ORGANIZER, RoleType.SMM}
+    )
 
     @staticmethod
     def roles(user: User) -> set[RoleType]:
@@ -33,6 +36,17 @@ class Access:
         """Допускает только организаторов и администраторов."""
         if not cls.is_staff(user):
             raise ForbiddenError("Доступно только организаторам и администраторам")
+
+    @classmethod
+    def require_publisher(cls, user: User) -> None:
+        """Допускает администраторов, организаторов и SMM."""
+        if not cls.is_publisher(user):
+            raise ForbiddenError("Доступно только администраторам, организаторам и SMM")
+
+    @classmethod
+    def is_publisher(cls, user: User) -> bool:
+        """Пользователь может готовить рассылки."""
+        return bool(cls.roles(user) & cls.PUBLISHER_ROLES)
 
     @classmethod
     def require_admin(cls, user: User) -> None:
