@@ -88,6 +88,16 @@ class UserRepository:
 
         return list(users), total or 0
 
+    async def active_ids(self) -> list[int]:
+        """Все активные пользователи, включая тех, кто отключил необязательные уведомления."""
+        statement = select(User.id).where(
+            User.deleted_at.is_(None),
+            User.status == UserStatus.ACTIVE,
+        )
+        rows = await self.__session.scalars(statement)
+
+        return list(rows)
+
     async def subscriber_ids(self, exclude: Iterable[int] = ()) -> list[int]:
         """Активные пользователи с включёнными уведомлениями, кроме указанных."""
         conditions = [

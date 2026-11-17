@@ -1,9 +1,18 @@
+from datetime import UTC, datetime
+
 import pytest
 from httpx import AsyncClient
 
 from app.database.models import User
-from app.database.models.enums import BroadcastStatus, RoleType
+from app.database.models.enums import (
+    BroadcastStatus,
+    NotificationType,
+    RegistrationStatus,
+    RoleType,
+    UserStatus,
+)
 from tests.app.api.support import as_user, make_admin, make_organizer
+from tests.app.conftest import FakePublisher
 from tests.app.database.factory import Factory
 
 pytestmark = pytest.mark.integration
@@ -123,3 +132,88 @@ class TestBroadcastDrafts:
 
         assert denied.status_code == 403
         assert allowed.json()["text"] == "От админа"
+
+
+class TestBroadcastSending:
+    """Отправка уже сохранённого черновика."""
+
+    async def test_subscribers_receive_the_text_and_others_do_not(
+        self, api: AsyncClient, factory: Factory, published: FakePublisher
+    ) -> None:
+        """Подписчикам уходит текст, отключившим уведомления и заблокированным — нет."""
+        admin = await make_admin(factory)
+        subscriber = await factory.user()
+        await factory.user(has_notifications_enabled=False)
+        await factory.user(status=UserStatus.BLOCKED, comment="нарушения")
+        created = await api.post(
+            "/api/broadcasts",
+            json={"text": "Анонс недели", "audience": "announcements_subscribers"},
+            headers=as_user(admin),
+        )
+
+        sent = await api.post(
+            f"/api/broadcasts/{created.json()['id']}/send", headers=as_user(admin)
+        )
+
+        assert sent.status_code == 200
+        assert sent.json()["status"] == BroadcastStatus.SENT
+        assert {message.telegram_id for message in published.messages} == {
+            admin.telegram_id,
+            subscriber.telegram_id,
+        }
+        assert published.messages[0].type is NotificationType.BROADCAST
+        assert published.messages[0].payload == {"text": "Анонс недели"}
+
+    async def test_all_includes_people_who_turned_notifications_off(
+        self, api: AsyncClient, factory: Factory, published: FakePublisher
+    ) -> None:
+        """Аудитория «все» включает тех, кто отключил необязательные уведомления."""
+        admin = await make_admin(factory)
+        quiet = await factory.user(has_notifications_enabled=False)
+        created = await api.post(
+            "/api/broadcasts",
+            json={"text": "Важное", "audience": "all"},
+            headers=as_user(admin),
+        )
+
+        await api.post(f"/api/broadcasts/{created.json()['id']}/send", headers=as_user(admin))
+
+        assert quiet.telegram_id in {message.telegram_id for message in published.messages}
+
+    async def test_event_participants_and_a_second_send_is_rejected(
+        self, api: AsyncClient, factory: Factory, published: FakePublisher
+    ) -> None:
+        """Участникам мероприятия уходит текст, повторная отправка отклоняется."""
+        admin = await make_admin(factory)
+        organizer = await make_organizer(factory, admin)
+        event = await factory.event(organizer=organizer)
+        participant = await factory.user()
+        await factory.registration(event, participant, status=RegistrationStatus.REGISTERED)
+        await factory.registration(
+            event,
+            await factory.user(),
+            status=RegistrationStatus.CANCELLED,
+            cancelled_at=datetime.now(UTC),
+            cancellation_reason="не смогу",
+        )
+        created = await api.post(
+            "/api/broadcasts",
+            json={
+                "text": "Сбор у метро",
+                "audience": "event_participants",
+                "event_id": event.id,
+            },
+            headers=as_user(organizer),
+        )
+
+        first = await api.post(
+            f"/api/broadcasts/{created.json()['id']}/send", headers=as_user(organizer)
+        )
+        second = await api.post(
+            f"/api/broadcasts/{created.json()['id']}/send", headers=as_user(organizer)
+        )
+
+        assert first.status_code == 200
+        assert second.status_code == 409
+        (message,) = published.messages
+        assert message.telegram_id == participant.telegram_id

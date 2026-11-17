@@ -77,3 +77,18 @@ class BroadcastsRouter(BaseRouter):
         broadcast = await BroadcastService(session).update(broadcast_id, data, current_user)
 
         return BroadcastRead.model_validate(broadcast)
+
+    @staticmethod
+    @Route.post(
+        "/{broadcast_id}/send",
+        summary="Отправка рассылки",
+        response=BroadcastRead,
+        errors=(NotFoundError, ConflictError),
+    )
+    async def send(
+        broadcast_id: int, current_user: CurrentUser, session: DatabaseSession
+    ) -> BroadcastRead:
+        """Отправляет черновик аудитории и помечает его отправленным."""
+        broadcast = await BroadcastService(session).send(broadcast_id, current_user)
+
+        return BroadcastRead.model_validate(broadcast)

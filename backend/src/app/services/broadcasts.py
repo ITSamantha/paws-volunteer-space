@@ -1,23 +1,29 @@
+from datetime import UTC, datetime
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError, UnprocessableError
-from app.database.models import Broadcast, User
-from app.database.models.enums import BroadcastAudience, BroadcastStatus
+from app.database.models import Broadcast, Registration, User
+from app.database.models.enums import BroadcastAudience, BroadcastStatus, NotificationType
 from app.repositories.broadcasts import BroadcastRepository
 from app.repositories.event.base import EventRepository
+from app.repositories.users import UserRepository
 from app.schemas.broadcasts import BroadcastCreate, BroadcastUpdate
 from app.schemas.pagination import Pagination
 from app.services.access import Access
+from app.services.notifications import NotificationService
 
 
 class BroadcastService:
-    """Черновики рассылок. Отправка будет отдельным шагом."""
+    """Черновики рассылок и их отправка в Kafka после сохранения."""
 
     def __init__(self, session: AsyncSession) -> None:
         """Работает в переданной сессии."""
         self.__session = session
         self.__broadcasts = BroadcastRepository(session)
         self.__events = EventRepository(session)
+        self.__users = UserRepository(session)
+        self.__notifications = NotificationService(session)
 
     async def search(
         self, pagination: Pagination, current_user: User
@@ -69,6 +75,38 @@ class BroadcastService:
         await self.__session.commit()
 
         return broadcast
+
+    async def send(self, broadcast_id: int, current_user: User) -> Broadcast:
+        """Отправляет черновик выбранной аудитории. Повторно отправить нельзя."""
+        Access.require_publisher(current_user)
+        broadcast = await self.__require(broadcast_id)
+        self.__require_editable(broadcast, current_user)
+        recipients = await self.__recipients(broadcast)
+
+        broadcast.status = BroadcastStatus.SENT
+        broadcast.sent_at = datetime.now(UTC)
+        self.__notifications.add(
+            recipients,
+            NotificationType.BROADCAST,
+            broadcast.event_id,
+            {"text": broadcast.text},
+        )
+        await self.__notifications.commit()
+
+        return broadcast
+
+    async def __recipients(self, broadcast: Broadcast) -> list[int]:
+        """Кому уходит эта рассылка."""
+        if broadcast.audience is BroadcastAudience.ALL:
+            recipients = await self.__users.active_ids()
+        elif broadcast.audience is BroadcastAudience.ANNOUNCEMENTS_SUBSCRIBERS:
+            recipients = await self.__users.subscriber_ids()
+        else:
+            recipients = await self.__events.participant_ids(
+                broadcast.event_id or 0, Registration.NOTIFIABLE_STATUSES
+            )
+
+        return recipients
 
     async def __require(self, broadcast_id: int) -> Broadcast:
         """Возвращает рассылку или выбрасывает NotFoundError."""
