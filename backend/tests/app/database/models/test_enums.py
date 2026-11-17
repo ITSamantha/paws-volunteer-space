@@ -15,8 +15,6 @@ ALL_ENUMS = [
     enums.RegistrationStatus,
     enums.BroadcastAudience,
     enums.BroadcastStatus,
-    enums.NotificationType,
-    enums.NotificationStatus,
 ]
 
 

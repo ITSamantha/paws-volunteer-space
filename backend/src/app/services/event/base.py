@@ -10,6 +10,7 @@ from app.database.models.enums import EventStatus, NotificationType, Registratio
 from app.messaging.reminders import Reminders
 from app.repositories.event.base import EventRepository
 from app.repositories.shelters import ShelterRepository
+from app.repositories.users import UserRepository
 from app.schemas.event.base import EventCancel, EventCreate, EventFilters, EventUpdate
 from app.schemas.pagination import Pagination
 from app.services.access import Access
@@ -39,6 +40,7 @@ class EventService:
         self.__session = session
         self.__events = EventRepository(session)
         self.__shelters = ShelterRepository(session)
+        self.__users = UserRepository(session)
         self.__notifications = NotificationService(session)
 
     async def search(
@@ -98,6 +100,13 @@ class EventService:
         )
 
         await self.__events.add(event)
+        subscribers = await self.__users.subscriber_ids(exclude=[current_user.id])
+        self.__notifications.add(
+            subscribers,
+            NotificationType.NEW_EVENT,
+            event.id,
+            {"title": event.title, "starts_at": event.starts_at.isoformat()},
+        )
         await self.__notifications.commit()
 
         return EventDetails(event, 0, True)

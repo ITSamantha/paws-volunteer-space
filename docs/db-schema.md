@@ -18,9 +18,6 @@ erDiagram
     users |o--o{ registrations : "decided_by"
     users ||--o{ broadcasts : "author_id"
     events |o--o{ broadcasts : "event_id"
-    users ||--o{ notifications : "user_id"
-    events |o--o{ notifications : "event_id"
-    broadcasts |o--o{ notifications : "broadcast_id"
 
     users {
         int id PK
@@ -135,23 +132,6 @@ erDiagram
         timestamptz sent_at "необяз."
         timestamptz created_at
     }
-
-    notifications {
-        int id PK
-        int user_id FK
-        notification_type type "registration_confirmed | registration_pending | registration_approved | registration_rejected | registration_waitlisted | spot_freed | registration_cancelled | event_changed | event_cancelled | reminder | new_event | organizer_new_registration | organizer_approval_requested | organizer_cancellation | user_blocked | broadcast"
-        int event_id FK "необяз."
-        int broadcast_id FK "необяз."
-        jsonb payload "необяз."
-        varchar(255) dedup_key "необяз."
-        smallint priority "1 высокий | 2 обычный | 3 низкий"
-        notification_status status "pending | queued | sent | failed"
-        timestamptz scheduled_at
-        timestamptz sent_at "необяз."
-        int attempts
-        text last_error "необяз."
-        timestamptz created_at
-    }
 ```
 
 ## Ограничения и индексы
@@ -178,11 +158,6 @@ erDiagram
 - индекс `ix_registrations_event_id_status` по (event_id, status)
 - `broadcasts`: `(audience = 'event_participants') = (event_id IS NOT NULL)` (`ck_broadcasts_event_matches_audience`)
 - индекс `ix_broadcasts_author_id` по (author_id)
-- индекс `ix_notifications_broadcast_id` по (broadcast_id)
-- индекс `ix_notifications_user_id` по (user_id)
-- уникальный индекс `uq_notifications_user_id_dedup_key` по (user_id, dedup_key) где `dedup_key IS NOT NULL`
-- `notifications`: `priority BETWEEN 1 AND 3` (`ck_notifications_priority_range`)
-- индекс `ix_notifications_pending_priority_scheduled_at` по (priority, scheduled_at) где `status = 'pending'`
 
 ## Начальные данные
 

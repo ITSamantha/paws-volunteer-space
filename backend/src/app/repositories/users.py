@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.exceptions import ConflictError, ForbiddenError
 from app.database.models import User, UserRole
-from app.database.models.enums import RoleType
+from app.database.models.enums import RoleType, UserStatus
 from app.schemas.pagination import Pagination
 from app.schemas.users import UserFilters
 
@@ -87,6 +87,23 @@ class UserRepository:
         users = await self.__session.scalars(statement)
 
         return list(users), total or 0
+
+    async def subscriber_ids(self, exclude: Iterable[int] = ()) -> list[int]:
+        """Активные пользователи с включёнными уведомлениями, кроме указанных."""
+        conditions = [
+            User.deleted_at.is_(None),
+            User.status == UserStatus.ACTIVE,
+            User.has_notifications_enabled.is_(True),
+        ]
+        excluded = set(exclude)
+
+        if excluded:
+            conditions.append(User.id.not_in(excluded))
+
+        statement = select(User.id).where(*conditions)
+        rows = await self.__session.scalars(statement)
+
+        return list(rows)
 
     async def telegram_ids(self, user_ids: Iterable[int]) -> dict[int, int]:
         """Telegram ID пользователей по их внутренним ID."""

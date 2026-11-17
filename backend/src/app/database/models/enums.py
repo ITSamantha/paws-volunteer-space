@@ -106,12 +106,3 @@ class NotificationType(StrEnum):
                 return NotificationPriority.LOW
             case _:
                 return NotificationPriority.NORMAL
-
-
-class NotificationStatus(StrEnum):
-    """Статус отправки уведомления."""
-
-    PENDING = "pending"
-    QUEUED = "queued"
-    SENT = "sent"
-    FAILED = "failed"

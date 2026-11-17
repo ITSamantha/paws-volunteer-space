@@ -17,7 +17,6 @@ EXPECTED_TABLES = {
     "event_tags",
     "registrations",
     "broadcasts",
-    "notifications",
 }
 
 ALL_TABLES = Base.metadata.sorted_tables

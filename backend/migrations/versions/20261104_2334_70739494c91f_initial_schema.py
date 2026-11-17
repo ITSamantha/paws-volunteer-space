@@ -2,7 +2,6 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import postgresql
 
 revision: str = "70739494c91f"
 down_revision: str | None = None
@@ -657,157 +656,9 @@ def upgrade() -> None:
     op.create_index(op.f("ix_registrations_user_id"), "registrations", ["user_id"], unique=False)
     op.execute(CHECK_DECIDER_FUNCTION)
     op.execute(CHECK_DECIDER_TRIGGER)
-    op.create_table(
-        "notifications",
-        sa.Column("id", sa.Integer(), nullable=False, comment="Внутренний идентификатор"),
-        sa.Column("user_id", sa.Integer(), nullable=False, comment="Получатель"),
-        sa.Column(
-            "type",
-            sa.Enum(
-                "registration_confirmed",
-                "registration_pending",
-                "registration_approved",
-                "registration_rejected",
-                "registration_waitlisted",
-                "spot_freed",
-                "registration_cancelled",
-                "event_changed",
-                "event_cancelled",
-                "reminder",
-                "new_event",
-                "organizer_new_registration",
-                "organizer_approval_requested",
-                "organizer_cancellation",
-                "user_blocked",
-                "broadcast",
-                name="notification_type",
-            ),
-            nullable=False,
-            comment="Тип уведомления",
-        ),
-        sa.Column(
-            "event_id", sa.Integer(), nullable=True, comment="Мероприятие, о котором уведомление"
-        ),
-        sa.Column(
-            "broadcast_id",
-            sa.Integer(),
-            nullable=True,
-            comment="Рассылка, из которой создано уведомление",
-        ),
-        sa.Column(
-            "payload",
-            postgresql.JSONB(astext_type=sa.Text()),
-            nullable=True,
-            comment="Данные для подстановки в шаблон сообщения",
-        ),
-        sa.Column(
-            "dedup_key",
-            sa.String(length=255),
-            nullable=True,
-            comment="Ключ защиты от дублей: у получателя не бывает двух уведомлений с одним ключом",
-        ),
-        sa.Column(
-            "priority",
-            sa.SmallInteger(),
-            server_default=sa.text("2"),
-            nullable=False,
-            comment="Приоритет отправки: 1 — высокий, 2 — обычный, 3 — низкий; задаётся типом",
-        ),
-        sa.Column(
-            "status",
-            sa.Enum("pending", "queued", "sent", "failed", name="notification_status"),
-            server_default="pending",
-            nullable=False,
-            comment="Статус отправки",
-        ),
-        sa.Column(
-            "scheduled_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-            comment="Дата и время, раньше которых не отправлять (для напоминаний)",
-        ),
-        sa.Column(
-            "sent_at",
-            sa.DateTime(timezone=True),
-            nullable=True,
-            comment="Дата и время фактической отправки",
-        ),
-        sa.Column(
-            "attempts",
-            sa.Integer(),
-            server_default=sa.text("0"),
-            nullable=False,
-            comment="Сколько попыток отправки уже было",
-        ),
-        sa.Column(
-            "last_error", sa.String(), nullable=True, comment="Текст последней ошибки отправки"
-        ),
-        sa.Column(
-            "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-            comment="Дата и время создания записи",
-        ),
-        sa.CheckConstraint(
-            "priority BETWEEN 1 AND 3", name=op.f("ck_notifications_priority_range")
-        ),
-        sa.ForeignKeyConstraint(
-            ["broadcast_id"],
-            ["broadcasts.id"],
-            name=op.f("fk_notifications_broadcast_id_broadcasts"),
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(
-            ["event_id"],
-            ["events.id"],
-            name=op.f("fk_notifications_event_id_events"),
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(
-            ["user_id"],
-            ["users.id"],
-            name=op.f("fk_notifications_user_id_users"),
-            ondelete="CASCADE",
-        ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_notifications")),
-        comment="Очередь уведомлений пользователям (outbox)",
-    )
-    op.create_index(
-        op.f("ix_notifications_broadcast_id"), "notifications", ["broadcast_id"], unique=False
-    )
-    op.create_index(
-        "uq_notifications_user_id_dedup_key",
-        "notifications",
-        ["user_id", "dedup_key"],
-        unique=True,
-        postgresql_where=sa.text("dedup_key IS NOT NULL"),
-    )
-    op.create_index(
-        "ix_notifications_pending_priority_scheduled_at",
-        "notifications",
-        ["priority", "scheduled_at"],
-        unique=False,
-        postgresql_where=sa.text("status = 'pending'"),
-    )
-    op.create_index(op.f("ix_notifications_user_id"), "notifications", ["user_id"], unique=False)
 
 
 def downgrade() -> None:
-    op.drop_index(
-        "uq_notifications_user_id_dedup_key",
-        table_name="notifications",
-        postgresql_where=sa.text("dedup_key IS NOT NULL"),
-    )
-    op.drop_index(op.f("ix_notifications_user_id"), table_name="notifications")
-    op.drop_index(
-        "ix_notifications_pending_priority_scheduled_at",
-        table_name="notifications",
-        postgresql_where=sa.text("status = 'pending'"),
-    )
-    op.drop_index(op.f("ix_notifications_broadcast_id"), table_name="notifications")
-    op.drop_table("notifications")
     op.execute("DROP TRIGGER trg_registrations_check_decider ON registrations")
     op.execute("DROP FUNCTION check_registration_decider()")
     op.drop_index(op.f("ix_registrations_user_id"), table_name="registrations")

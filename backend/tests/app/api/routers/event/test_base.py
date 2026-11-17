@@ -6,7 +6,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models import Bonus, Event, Tag, User
-from app.database.models.enums import NotificationType, RegistrationStatus
+from app.database.models.enums import NotificationType, RegistrationStatus, UserStatus
 from tests.app.api.support import as_user, make_admin, make_organizer
 from tests.app.conftest import FakePublisher
 from tests.app.database.factory import Factory
@@ -343,6 +343,24 @@ class TestEventCreate:
 
         assert response.status_code == 201
         assert response.json()["location"] is None
+
+    async def test_subscribers_are_told_about_a_new_event(
+        self, api: AsyncClient, factory: Factory, published: FakePublisher
+    ) -> None:
+        """Анонс уходит подписчикам, но не автору, отключившим уведомления и заблокированным."""
+        admin = await make_admin(factory)
+        subscriber = await factory.user()
+        await factory.user(has_notifications_enabled=False)
+        await factory.user(status=UserStatus.BLOCKED, comment="нарушения")
+
+        response = await api.post("/api/events", json=payload(), headers=as_user(admin))
+
+        assert response.status_code == 201
+        (sent,) = published.messages
+        assert sent.type is NotificationType.NEW_EVENT
+        assert sent.telegram_id == subscriber.telegram_id
+        assert sent.payload["title"] == "Выезд в приют"
+        assert sent.priority == NotificationType.NEW_EVENT.priority
 
     async def test_volunteer_cannot_create(self, api: AsyncClient, factory: Factory) -> None:
         """Волонтёр не может создавать мероприятия."""
