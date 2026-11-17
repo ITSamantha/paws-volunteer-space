@@ -58,7 +58,7 @@ class TestMenu:
         """Нажатие на ещё не сделанный раздел объясняет, что он следующий."""
         await locales.set(1, "en")
         callback = MagicMock(spec=CallbackQuery)
-        callback.data = Menu.EVENTS
+        callback.data = Menu.MINE
         callback.from_user = MagicMock(id=1)
         callback.answer = AsyncMock()
 

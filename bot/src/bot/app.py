@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async
 
 from bot.api.client import ApiClient
 from bot.config import Settings
-from bot.handlers import language, menu, start
+from bot.handlers import events, language, menu, start
 from bot.i18n.repository import LocaleRepository
 from bot.i18n.translator import Translator
 from bot.messaging.consumer import NotificationConsumer
@@ -51,6 +51,7 @@ class Application:
         consumer = NotificationConsumer(settings.kafka, jobs)
         dispatcher = Dispatcher(locales=locales, translator=translator, api=api)
         dispatcher.include_router(start.router)
+        dispatcher.include_router(events.router)
         dispatcher.include_router(menu.router)
         dispatcher.include_router(language.router)
 

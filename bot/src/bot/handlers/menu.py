@@ -43,7 +43,7 @@ class Menu:
         return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-@router.callback_query(F.data.in_({Menu.EVENTS, Menu.MINE, Menu.ORGANIZER}))
+@router.callback_query(F.data.in_({Menu.MINE, Menu.ORGANIZER}))
 async def section_is_next(
     callback: CallbackQuery, locales: LocaleRepository, translator: Translator
 ) -> None:

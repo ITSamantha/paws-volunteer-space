@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any
 
 import httpx
@@ -12,6 +13,28 @@ class ApiError(Exception):
         super().__init__(code)
         self.status_code = status_code
         self.code = code
+
+
+class EventLine(BaseModel):
+    """Мероприятие в списке бота."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    title: str
+    starts_at: datetime
+    location: str | None = None
+    occupied: int = 0
+    capacity: int
+
+
+class EventPage(BaseModel):
+    """Страница мероприятий."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    items: list[EventLine]
+    total: int
 
 
 class Profile(BaseModel):
@@ -43,6 +66,18 @@ class ApiClient:
 
         return Profile.model_validate(body)
 
+    async def events(self, telegram_id: int) -> EventPage:
+        """Ближайшие запланированные мероприятия."""
+        response = await self.request(
+            "GET",
+            "/api/events",
+            telegram_id,
+            params={"status": "planned", "limit": 8},
+        )
+        page = EventPage.model_validate(self.__json(response))
+
+        return page
+
     async def request(
         self, method: str, path: str, telegram_id: int, **kwargs: Any
     ) -> httpx.Response:
@@ -63,7 +98,9 @@ class ApiClient:
     def __json(response: httpx.Response) -> Any:
         """Тело успешного ответа или ошибка API."""
         if response.is_success:
-            return response.json()
+            body = response.json()
+
+            return body
 
         code = "http_error"
 
@@ -75,4 +112,6 @@ class ApiClient:
         if isinstance(payload, dict) and isinstance(payload.get("code"), str):
             code = payload["code"]
 
-        raise ApiError(response.status_code, code)
+        error = ApiError(response.status_code, code)
+
+        raise error

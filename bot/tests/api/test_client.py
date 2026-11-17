@@ -48,3 +48,34 @@ class TestApiClient:
 
         assert error.value.status_code == 403
         assert error.value.code == "forbidden"
+
+    async def test_events_asks_for_planned_visits(self) -> None:
+        """Список запрашивает только запланированные мероприятия, не больше восьми."""
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.url.params["status"] == "planned"
+            assert request.url.params["limit"] == "8"
+            return httpx.Response(
+                200,
+                json={
+                    "items": [
+                        {
+                            "id": 4,
+                            "title": "Выезд",
+                            "starts_at": "2030-03-05T07:00:00Z",
+                            "location": "Метро",
+                            "occupied": 1,
+                            "capacity": 5,
+                        }
+                    ],
+                    "total": 1,
+                    "limit": 8,
+                    "offset": 0,
+                },
+            )
+
+        page = await client(httpx.MockTransport(handler)).events(7)
+
+        assert page.total == 1
+        assert page.items[0].id == 4
+        assert page.items[0].title == "Выезд"
