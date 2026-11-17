@@ -25,12 +25,8 @@ class Menu:
         """Меню волонтёра и, для персонала, кнопка организатора. Внизу выбор языка."""
         translate = translator.translate
         rows = [
-            [
-                InlineKeyboardButton(
-                    text=translate(locale, "menu-events"), callback_data=cls.EVENTS
-                ),
-                InlineKeyboardButton(text=translate(locale, "menu-mine"), callback_data=cls.MINE),
-            ]
+            [InlineKeyboardButton(text=translate(locale, "menu-events"), callback_data=cls.EVENTS)],
+            [InlineKeyboardButton(text=translate(locale, "menu-mine"), callback_data=cls.MINE)],
         ]
 
         if cls.STAFF & set(roles):

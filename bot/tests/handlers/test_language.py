@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from bot.handlers.language import LanguageChoice, set_language
 from bot.i18n.repository import LocaleRepository
 from bot.i18n.translator import Translator
+from tests.handlers.test_start import api
 
 pytestmark = pytest.mark.integration
 
@@ -45,7 +46,7 @@ class TestSetLanguage:
         callback.data = data
         callback.from_user = MagicMock(id=user_id)
         callback.message = MagicMock(spec=Message)
-        callback.message.answer = AsyncMock()
+        callback.message.edit_text = AsyncMock()
         callback.answer = AsyncMock()
 
         return callback
@@ -56,10 +57,11 @@ class TestSetLanguage:
         """Выбор сохраняется, подтверждение приходит на выбранном языке."""
         callback = self.pressed("language:en")
 
-        await set_language(callback, locales, translator)
+        await set_language(callback, locales, translator, api(None))
 
         assert await locales.get(1) == "en"
-        assert callback.message.answer.await_args.args[0] == "Language changed: English"
+        assert callback.message.edit_text.await_args.args[0].startswith("Hi!")
+        callback.message.answer.assert_not_called()
         callback.answer.assert_awaited_once()
 
     async def test_unknown_code_means_default(
@@ -68,7 +70,7 @@ class TestSetLanguage:
         """Подделанный код языка заменяется языком по умолчанию."""
         callback = self.pressed("language:xx")
 
-        await set_language(callback, locales, translator)
+        await set_language(callback, locales, translator, api(None))
 
         assert await locales.get(1) == "ru"
 
@@ -79,7 +81,7 @@ class TestSetLanguage:
         callback = self.pressed("language:en")
         callback.message = None
 
-        await set_language(callback, locales, translator)
+        await set_language(callback, locales, translator, api(None))
 
         assert await locales.get(1) == "en"
         callback.answer.assert_awaited_once()

@@ -25,7 +25,11 @@ def translator() -> Translator:
 def incoming(user_id: int = 1, language_code: str | None = "ru") -> MagicMock:
     message = MagicMock(spec=Message)
     message.from_user = MagicMock(id=user_id, language_code=language_code)
-    message.answer = AsyncMock()
+    message.chat = MagicMock(id=1)
+    message.answer = AsyncMock(return_value=MagicMock(message_id=50))
+    message.delete = AsyncMock()
+    message.bot = MagicMock()
+    message.bot.delete_message = AsyncMock()
 
     return message
 
@@ -77,6 +81,20 @@ class TestStart:
         await start(message, locales, translator, api(None))
 
         assert "Лапки помощи" in answered(message)
+
+    async def test_a_new_menu_replaces_the_previous_one(
+        self, locales: LocaleRepository, translator: Translator
+    ) -> None:
+        """Повторный /start удаляет прошлое меню, команда тоже не остаётся."""
+        first = incoming()
+        await start(first, locales, translator, api(None))
+        second = incoming()
+
+        await start(second, locales, translator, api(None))
+
+        second.bot.delete_message.assert_awaited_once_with(1, 50)
+        second.delete.assert_awaited_once()
+        assert await locales.menu_message_id(1) == 50
 
     async def test_message_without_sender_is_ignored(
         self, locales: LocaleRepository, translator: Translator

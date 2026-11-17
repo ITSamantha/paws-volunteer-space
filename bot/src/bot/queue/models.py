@@ -84,4 +84,7 @@ class UserLocale(Base):
         BigInteger, primary_key=True, comment="Пользователь (Telegram ID)"
     )
     locale: Mapped[str] = mapped_column(String(8), comment="Код языка, например ru или en")
+    menu_message_id: Mapped[int | None] = mapped_column(
+        BigInteger, comment="Сообщение с меню; предыдущее удаляется, уведомления не трогаются"
+    )
     updated_at: Mapped[datetime] = mapped_column(comment="Когда язык выбран или изменён")

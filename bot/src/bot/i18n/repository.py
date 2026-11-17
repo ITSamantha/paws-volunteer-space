@@ -49,3 +49,28 @@ class LocaleRepository:
             )
 
         return current or locale
+
+    async def menu_message_id(self, telegram_id: int) -> int | None:
+        """Сообщение с меню, которое бот показывал этому человеку."""
+        async with self.__sessions() as session:
+            message_id = await session.scalar(
+                select(UserLocale.menu_message_id).where(UserLocale.telegram_id == telegram_id)
+            )
+
+        return message_id
+
+    async def remember_menu(self, telegram_id: int, message_id: int) -> None:
+        """Запоминает сообщение меню, не меняя выбранный язык."""
+        statement = insert(UserLocale).values(
+            telegram_id=telegram_id,
+            locale="ru",
+            menu_message_id=message_id,
+            updated_at=datetime.now(UTC),
+        )
+        statement = statement.on_conflict_do_update(
+            index_elements=["telegram_id"],
+            set_={"menu_message_id": statement.excluded.menu_message_id},
+        )
+
+        async with self.__sessions() as session, session.begin():
+            await session.execute(statement)

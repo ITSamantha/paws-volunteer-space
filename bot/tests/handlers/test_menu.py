@@ -39,7 +39,7 @@ class TestMenu:
         await start(message, locales, translator, api(None))
 
         keyboard = message.answer.await_args.kwargs["reply_markup"]
-        assert labels(keyboard) == ["Events", "My registrations", "Русский", "English"]
+        assert labels(keyboard) == ["🐾 Events", "💛 My registrations", "Русский", "English"]
 
     async def test_organizer_gets_an_extra_button(
         self, locales: LocaleRepository, translator: Translator
@@ -50,7 +50,7 @@ class TestMenu:
         await start(message, locales, translator, api(["smm"]))
 
         keyboard = message.answer.await_args.kwargs["reply_markup"]
-        assert "Организатору" in labels(keyboard)
+        assert "🗂 Для организаторов" in labels(keyboard)
 
     async def test_unfinished_section_says_it_is_next(
         self, locales: LocaleRepository, translator: Translator
@@ -64,4 +64,6 @@ class TestMenu:
 
         await section_is_next(callback, locales, translator)
 
-        callback.answer.assert_awaited_once_with("This section is coming next.")
+        callback.answer.assert_awaited_once_with(
+            "This part is still being prepared. You will be able to use it soon."
+        )

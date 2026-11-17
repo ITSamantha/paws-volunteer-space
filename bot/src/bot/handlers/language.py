@@ -3,6 +3,8 @@ from typing import ClassVar
 from aiogram import F, Router
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
+from bot.api.client import ApiClient
+from bot.handlers.screen import Screen
 from bot.i18n.repository import LocaleRepository
 from bot.i18n.translator import Translator
 
@@ -28,14 +30,23 @@ class LanguageChoice:
 
 @router.callback_query(F.data.startswith(LanguageChoice.PREFIX))
 async def set_language(
-    callback: CallbackQuery, locales: LocaleRepository, translator: Translator
+    callback: CallbackQuery, locales: LocaleRepository, translator: Translator, api: ApiClient
 ) -> None:
-    """Сохраняет выбранный язык и подтверждает его на этом же языке."""
+    """Сохраняет язык и переписывает то же меню на нём, не добавляя сообщение."""
     locale = Translator.normalize((callback.data or "").removeprefix(LanguageChoice.PREFIX))
 
     await locales.set(callback.from_user.id, locale)
 
+    from bot.handlers.menu import Menu
+    from bot.handlers.start import roles_of
+
+    roles = await roles_of(api, callback.from_user.id)
+
     if isinstance(callback.message, Message):
-        await callback.message.answer(translator.translate(locale, "language-changed"))
+        await Screen.replace(
+            callback.message,
+            translator.translate(locale, "start-greeting"),
+            Menu.keyboard(translator, locale, roles),
+        )
 
     await callback.answer()
