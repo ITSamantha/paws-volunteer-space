@@ -1,3 +1,5 @@
+import json
+
 import httpx
 import pytest
 
@@ -154,3 +156,14 @@ class TestApiClient:
 
         assert items[0].status == "waitlisted"
         assert items[0].event.title == "Выезд"
+
+    async def test_cancel_sends_the_reason(self) -> None:
+        """Отмена передаёт причину в теле запроса."""
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.method == "POST"
+            assert request.url.path == "/api/events/4/registrations/me/cancel"
+            assert json.loads(request.content) == {"reason": "Не смогу"}
+            return httpx.Response(200, json={"id": 1, "event_id": 4, "status": "cancelled"})
+
+        await client(httpx.MockTransport(handler)).cancel(7, 4, "Не смогу")

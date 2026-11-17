@@ -161,6 +161,17 @@ class ApiClient:
 
         return items
 
+    async def cancel(self, telegram_id: int, event_id: int, reason: str) -> None:
+        """Отменяет свою запись и передаёт причину организатору."""
+        response = await self.request(
+            "POST",
+            f"/api/events/{event_id}/registrations/me/cancel",
+            telegram_id,
+            json={"reason": reason},
+        )
+
+        self.__json(response)
+
     async def request(
         self, method: str, path: str, telegram_id: int, **kwargs: Any
     ) -> httpx.Response:
